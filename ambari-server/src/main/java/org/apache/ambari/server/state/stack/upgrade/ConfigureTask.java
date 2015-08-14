@@ -109,6 +109,8 @@ public class ConfigureTask extends ServerSideActionTask {
    */
   public static final String PARAMETER_REPLACEMENTS = "configure-task-replacements";
 
+  public static final String actionVerb = "Configuring";
+  
   /**
    * Gson
    */
@@ -146,6 +148,16 @@ public class ConfigureTask extends ServerSideActionTask {
   @Override
   public Type getType() {
     return type;
+  }
+
+  @Override
+  public StageWrapper.Type getStageWrapperType() {
+    return StageWrapper.Type.SERVER_SIDE_ACTION;
+  }
+
+  @Override
+  public String getActionVerb() {
+    return actionVerb;
   }
 
   /**

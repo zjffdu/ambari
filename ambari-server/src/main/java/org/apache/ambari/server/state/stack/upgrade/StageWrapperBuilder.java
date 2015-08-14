@@ -17,6 +17,7 @@
  */
 package org.apache.ambari.server.state.stack.upgrade;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 
@@ -25,7 +26,7 @@ import org.apache.ambari.server.state.UpgradeContext;
 import org.apache.ambari.server.state.stack.UpgradePack.ProcessingComponent;
 
 /**
- * Defines how to build stages.
+ * Defines how to build stages for an Upgrade or Downgrade.
  */
 public abstract class StageWrapperBuilder {
 
@@ -73,9 +74,14 @@ public abstract class StageWrapperBuilder {
    * @param forUpgrade  {@code true} if resolving for an upgrade, {@code false} for downgrade
    * @param preTasks    {@code true} if loading pre-upgrade or pre-downgrade
    * @param pc          the processing component holding task definitions
-   * @return
+   * @return A collection, potentially empty, of the tasks to run, which may contain either
+   * pre or post tasks if they exist, and the order depends on whether it's an upgrade or downgrade.
    */
   protected List<Task> resolveTasks(boolean forUpgrade, boolean preTasks, ProcessingComponent pc) {
+    if (null == pc) {
+      return Collections.emptyList();
+    }
+
     if (forUpgrade) {
       return preTasks ? pc.preTasks : pc.postTasks;
     } else {
@@ -84,6 +90,4 @@ public abstract class StageWrapperBuilder {
         (null == pc.postDowngradeTasks ? pc.postTasks : pc.postDowngradeTasks);
     }
   }
-
-
 }

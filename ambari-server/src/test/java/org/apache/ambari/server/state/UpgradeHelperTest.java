@@ -54,6 +54,7 @@ import org.apache.ambari.server.state.stack.upgrade.ManualTask;
 import org.apache.ambari.server.state.stack.upgrade.StageWrapper;
 import org.apache.ambari.server.state.stack.upgrade.Task;
 import org.apache.ambari.server.state.stack.upgrade.TaskWrapper;
+import org.apache.ambari.server.state.stack.upgrade.UpgradeType;
 import org.easymock.EasyMock;
 import org.junit.After;
 import org.junit.Before;
@@ -138,7 +139,7 @@ public class UpgradeHelperTest {
     makeCluster();
 
     UpgradeContext context = new UpgradeContext(m_masterHostResolver, HDP_21,
-        HDP_21, UPGRADE_VERSION, Direction.UPGRADE);
+        HDP_21, UPGRADE_VERSION, Direction.UPGRADE, UpgradeType.ROLLING);
 
     List<UpgradeGroupHolder> groups = m_upgradeHelper.createSequence(upgrade, context);
 
@@ -207,7 +208,7 @@ public class UpgradeHelperTest {
     makeCluster();
 
     UpgradeContext context = new UpgradeContext(m_masterHostResolver, HDP_21,
-        HDP_21, UPGRADE_VERSION, Direction.UPGRADE);
+        HDP_21, UPGRADE_VERSION, Direction.UPGRADE, UpgradeType.ROLLING);
 
     List<UpgradeGroupHolder> groups = m_upgradeHelper.createSequence(upgrade, context);
 
@@ -218,7 +219,7 @@ public class UpgradeHelperTest {
 
     List<String> orderedNameNodes = new LinkedList<String>();
     for (StageWrapper sw : mastersGroup.items) {
-      if (sw.getType().equals(StageWrapper.Type.RESTART)) {
+      if (sw.getType().equals(StageWrapper.Type.RESTART) && sw.getText().toLowerCase().contains("NameNode".toLowerCase())) {
         for (TaskWrapper tw : sw.getTasks()) {
           for (String hostName : tw.getHosts()) {
             orderedNameNodes.add(hostName);
@@ -256,7 +257,7 @@ public class UpgradeHelperTest {
     assertEquals(HostState.HEARTBEAT_LOST, schs.get(0).getHostState());
 
     UpgradeContext context = new UpgradeContext(m_masterHostResolver, HDP_21,
-        HDP_21, UPGRADE_VERSION, Direction.UPGRADE);
+        HDP_21, UPGRADE_VERSION, Direction.UPGRADE, UpgradeType.ROLLING);
 
     List<UpgradeGroupHolder> groups = m_upgradeHelper.createSequence(upgrade, context);
 
@@ -292,7 +293,7 @@ public class UpgradeHelperTest {
     makeCluster();
 
     UpgradeContext context = new UpgradeContext(m_masterHostResolver, HDP_21,
-        HDP_21, DOWNGRADE_VERSION, Direction.DOWNGRADE);
+        HDP_21, DOWNGRADE_VERSION, Direction.DOWNGRADE, UpgradeType.ROLLING);
 
     List<UpgradeGroupHolder> groups = m_upgradeHelper.createSequence(upgrade, context);
 
@@ -332,7 +333,7 @@ public class UpgradeHelperTest {
     makeCluster();
 
     UpgradeContext context = new UpgradeContext(m_masterHostResolver, HDP_21,
-        HDP_21, UPGRADE_VERSION, Direction.UPGRADE);
+        HDP_21, UPGRADE_VERSION, Direction.UPGRADE, UpgradeType.ROLLING);
 
     List<UpgradeGroupHolder> groups = m_upgradeHelper.createSequence(upgrade, context);
 
@@ -352,7 +353,7 @@ public class UpgradeHelperTest {
     makeCluster();
 
     UpgradeContext context = new UpgradeContext(m_masterHostResolver, HDP_21,
-        HDP_21, UPGRADE_VERSION, Direction.UPGRADE);
+        HDP_21, UPGRADE_VERSION, Direction.UPGRADE, UpgradeType.ROLLING);
 
     List<UpgradeGroupHolder> groups = m_upgradeHelper.createSequence(upgrade, context);
 
@@ -381,7 +382,7 @@ public class UpgradeHelperTest {
     Cluster cluster = makeCluster();
 
     UpgradeContext context = new UpgradeContext(m_masterHostResolver, HDP_21,
-                                                HDP_21, UPGRADE_VERSION, Direction.UPGRADE);
+                                                HDP_21, UPGRADE_VERSION, Direction.UPGRADE, UpgradeType.ROLLING);
 
     List<UpgradeGroupHolder> groups = m_upgradeHelper.createSequence(upgrade,
                                                                      context);
@@ -455,7 +456,7 @@ public class UpgradeHelperTest {
     Cluster cluster = makeCluster();
 
     UpgradeContext context = new UpgradeContext(m_masterHostResolver, HDP_21,
-        HDP_21, UPGRADE_VERSION, Direction.UPGRADE);
+        HDP_21, UPGRADE_VERSION, Direction.UPGRADE, UpgradeType.ROLLING);
 
     List<UpgradeGroupHolder> groups = m_upgradeHelper.createSequence(upgrade,
         context);
@@ -530,7 +531,7 @@ public class UpgradeHelperTest {
     Cluster cluster = makeCluster();
 
     UpgradeContext context = new UpgradeContext(m_masterHostResolver, HDP_21, HDP_21,
-        UPGRADE_VERSION, Direction.UPGRADE);
+        UPGRADE_VERSION, Direction.UPGRADE, UpgradeType.ROLLING);
 
     List<UpgradeGroupHolder> groups = m_upgradeHelper.createSequence(upgrade, context);
 
@@ -572,7 +573,6 @@ public class UpgradeHelperTest {
     assertEquals("move-key-to", transfers.get(1).toKey);
   }
 
-
   @Test
   public void testServiceCheckUpgradeStages() throws Exception {
     Map<String, UpgradePack> upgrades = ambariMetaInfo.getUpgradePacks("HDP", "2.2.0");
@@ -607,7 +607,7 @@ public class UpgradeHelperTest {
     }
 
     UpgradeContext context = new UpgradeContext(m_masterHostResolver, HDP_21,
-        HDP_22, UPGRADE_VERSION, Direction.UPGRADE);
+        HDP_22, UPGRADE_VERSION, Direction.UPGRADE, UpgradeType.ROLLING);
 
     List<UpgradeGroupHolder> groups = m_upgradeHelper.createSequence(upgrade, context);
 
@@ -651,7 +651,7 @@ public class UpgradeHelperTest {
     makeCluster();
 
     UpgradeContext context = new UpgradeContext(m_masterHostResolver, HDP_21,
-        HDP_21, DOWNGRADE_VERSION, Direction.DOWNGRADE);
+        HDP_21, DOWNGRADE_VERSION, Direction.DOWNGRADE, UpgradeType.ROLLING);
 
     List<UpgradeGroupHolder> groups = m_upgradeHelper.createSequence(upgrade, context);
 
@@ -685,7 +685,7 @@ public class UpgradeHelperTest {
     makeCluster();
 
     UpgradeContext context = new UpgradeContext(m_masterHostResolver, HDP_21,
-        HDP_21, UPGRADE_VERSION, Direction.UPGRADE);
+        HDP_21, UPGRADE_VERSION, Direction.UPGRADE, UpgradeType.ROLLING);
 
     List<UpgradeGroupHolder> groups = m_upgradeHelper.createSequence(upgrade, context);
 
@@ -933,7 +933,8 @@ public class UpgradeHelperTest {
     expect(m_masterHostResolver.getCluster()).andReturn(c).anyTimes();
     replay(m_masterHostResolver);
 
-    UpgradeContext context = new UpgradeContext(m_masterHostResolver, HDP_21, HDP_21, DOWNGRADE_VERSION, Direction.DOWNGRADE);
+    UpgradeContext context = new UpgradeContext(m_masterHostResolver, HDP_21, HDP_21, DOWNGRADE_VERSION,
+        Direction.DOWNGRADE, UpgradeType.ROLLING);
 
     Map<String, UpgradePack> upgrades = ambariMetaInfo.getUpgradePacks("HDP", "2.1.1");
     UpgradePack upgrade = upgrades.get("upgrade_direction");

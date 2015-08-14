@@ -36,6 +36,7 @@ import org.apache.ambari.server.state.stack.upgrade.Direction;
 import org.apache.ambari.server.state.stack.upgrade.Grouping;
 import org.apache.ambari.server.state.stack.upgrade.ServiceCheckGrouping;
 import org.apache.ambari.server.state.stack.upgrade.Task;
+import org.apache.ambari.server.state.stack.upgrade.UpgradeType;
 
 /**
  * Represents an upgrade pack.
@@ -50,11 +51,18 @@ public class UpgradePack {
   @XmlElement(name="target-stack")
   private String targetStack;
 
+  @XmlElement(name="type", defaultValue="rolling")
+  private UpgradeType type;
 
   @XmlElementWrapper(name="order")
   @XmlElement(name="group")
   private List<Grouping> groups;
 
+  /**
+   * In the case of a rolling upgrade, will specify processing logic for a particular component.
+   * Nonrolling upgrades are simpler so the "processing" is embedded into the  group's "type", which is a function like
+   * "stop" or "start".
+   */
   @XmlElementWrapper(name="processing")
   @XmlElement(name="service")
   private List<ProcessingService> processing;
@@ -81,13 +89,29 @@ public class UpgradePack {
   }
 
   /**
+   * @return the type of upgrade, e.g., "rolling" or "nonrolling"
+   */
+  public UpgradeType getType() {
+    return type;
+  }
+
+  /**
    * Gets the groups defined for the upgrade pack.  If a direction is defined
    * for a group, it must match the supplied direction to be returned
    * @param direction the direction to return the ordered groups
    * @return the list of groups
    */
   public List<Grouping> getGroups(Direction direction) {
-    List<Grouping> list = direction.isUpgrade() ? groups : getDowngradeGroups();
+    List<Grouping> list = new ArrayList<Grouping>();
+    if (direction.isUpgrade()) {
+      list = groups;
+    } else {
+      if (type == UpgradeType.ROLLING) {
+        list = getDowngradeGroupsForRolling();
+      } else if (type == UpgradeType.NONROLLING) {
+        list = getDowngradeGroupsForNonrolling();
+      }
+    }
 
     List<Grouping> checked = new ArrayList<Grouping>();
     for (Grouping group : list) {
@@ -100,7 +124,7 @@ public class UpgradePack {
   }
 
   /**
-   * Calculates the group orders when performing a downgrade
+   * Calculates the group orders when performing a rolling downgrade
    * <ul>
    *   <li>ClusterGroupings must remain at the same positions (first/last).</li>
    *   <li>When there is a ServiceCheck group, it must ALWAYS follow the same</li>
@@ -131,7 +155,7 @@ public class UpgradePack {
    * </ol>
    * @return the list of groups, reversed appropriately for a downgrade.
    */
-  private List<Grouping> getDowngradeGroups() {
+  private List<Grouping> getDowngradeGroupsForRolling() {
     List<Grouping> reverse = new ArrayList<Grouping>();
 
     int idx = 0;
@@ -161,6 +185,17 @@ public class UpgradePack {
     return reverse;
   }
 
+  private List<Grouping> getDowngradeGroupsForNonrolling() {
+    throw new UnsupportedOperationException("TODO AMBARI-12698");
+    /*
+    List<Grouping> list = new ArrayList<Grouping>();
+    for (Grouping g : groups) {
+      list.add(g);
+    }
+    return list;
+    */
+  }
+
   /**
    * Gets the tasks by which services and components should be upgraded.
    * @return a map of service_name -> map(component_name -> process).
@@ -170,15 +205,17 @@ public class UpgradePack {
     if (null == m_process) {
       m_process = new LinkedHashMap<String, Map<String, ProcessingComponent>>();
 
-      for (ProcessingService svc : processing) {
-        if (!m_process.containsKey(svc.name)) {
-          m_process.put(svc.name, new LinkedHashMap<String, ProcessingComponent>());
-        }
+      if (processing != null) {
+        for (ProcessingService svc : processing) {
+          if (!m_process.containsKey(svc.name)) {
+            m_process.put(svc.name, new LinkedHashMap<String, ProcessingComponent>());
+          }
 
-        Map<String, ProcessingComponent> componentMap = m_process.get(svc.name);
+          Map<String, ProcessingComponent> componentMap = m_process.get(svc.name);
 
-        for (ProcessingComponent pc : svc.components) {
-          componentMap.put(pc.name, pc);
+          for (ProcessingComponent pc : svc.components) {
+            componentMap.put(pc.name, pc);
+          }
         }
       }
     }
@@ -209,8 +246,6 @@ public class UpgradePack {
     @XmlElement(name="component")
     public List<ProcessingComponent> components;
   }
-
-
 
   /**
    * A component definition in the 'processing/service' path.

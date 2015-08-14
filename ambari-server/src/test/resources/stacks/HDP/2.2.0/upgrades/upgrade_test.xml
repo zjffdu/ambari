@@ -17,6 +17,7 @@
 -->
 <upgrade xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
   <target>2.2.*</target>
+  <type>rolling</type>
   
   <order>
     <group xsi:type="cluster" name="PRE_CLUSTER" title="Pre {{direction.text.proper}}">
@@ -126,7 +127,7 @@
           </task>
         </pre-upgrade>
         <upgrade>
-          <task xsi:type="restart" />
+          <task xsi:type="restart-task" />
         </upgrade>
         <post-upgrade>
           <task xsi:type="configure" />
@@ -149,7 +150,7 @@
           </task>
         </pre-upgrade>
         <upgrade>
-          <task xsi:type="restart" />
+          <task xsi:type="restart-task" />
         </upgrade>
         <post-upgrade>
           <task xsi:type="execute">
@@ -160,7 +161,7 @@
       <component name="DATANODE">
         <pre-downgrade />
         <upgrade>
-          <task xsi:type="restart" />
+          <task xsi:type="restart-task" />
         </upgrade>
         <post-downgrade>
           <task xsi:type="manual">

@@ -17,20 +17,33 @@
  */
 package org.apache.ambari.server.state.stack.upgrade;
 
-import javax.xml.bind.annotation.XmlAttribute;
+import javax.xml.bind.annotation.XmlAccessType;
+import javax.xml.bind.annotation.XmlAccessorType;
+import javax.xml.bind.annotation.XmlRootElement;
+import javax.xml.bind.annotation.XmlTransient;
+import javax.xml.bind.annotation.XmlType;
 
 /**
- *
+ * Used to represent a start of a component.
  */
-public abstract class ServerSideActionTask extends Task {
+@XmlRootElement
+@XmlAccessorType(XmlAccessType.FIELD)
+@XmlType(name="start-task")
+public class StartTask extends Task {
 
-  @XmlAttribute(name="class")
-  protected String implClass;
+  @XmlTransient
+  private Type type = Type.START;
 
-  public static final String actionVerb = "Executing";
+  public static final String actionVerb = "Starting";
 
-  public String getImplementationClass() {
-    return implClass;
+  @Override
+  public Type getType() {
+    return type;
+  }
+
+  @Override
+  public StageWrapper.Type getStageWrapperType() {
+    return StageWrapper.Type.START;
   }
 
   @Override

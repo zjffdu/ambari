@@ -94,6 +94,7 @@ import org.apache.ambari.server.state.stack.upgrade.ServerSideActionTask;
 import org.apache.ambari.server.state.stack.upgrade.StageWrapper;
 import org.apache.ambari.server.state.stack.upgrade.Task;
 import org.apache.ambari.server.state.stack.upgrade.TaskWrapper;
+import org.apache.ambari.server.state.stack.upgrade.UpgradeType;
 import org.apache.ambari.server.state.svccomphost.ServiceComponentHostServerActionEvent;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
@@ -137,6 +138,8 @@ public class UpgradeResourceProvider extends AbstractControllerResourceProvider 
   private static final String COMMAND_PARAM_VERSION = VERSION;
   private static final String COMMAND_PARAM_CLUSTER_NAME = "clusterName";
   private static final String COMMAND_PARAM_DIRECTION = "upgrade_direction";
+  // TODO AMBARI-12698, change this variable name since it is no longer always a restart. Possible values are rolling_upgrade or nonrolling_upgrade
+  // This will involve changing Script.py
   private static final String COMMAND_PARAM_RESTART_TYPE = "restart_type";
   private static final String COMMAND_PARAM_TASKS = "tasks";
   private static final String COMMAND_PARAM_STRUCT_OUT = "structured_out";
@@ -567,7 +570,7 @@ public class UpgradeResourceProvider extends AbstractControllerResourceProvider 
     }
 
     UpgradeContext ctx = new UpgradeContext(resolver, sourceStackId, targetStackId, version,
-        direction);
+        direction, pack.getType());
 
     if (direction.isDowngrade()) {
       if (requestMap.containsKey(UPGRADE_FROM_VERSION)) {
@@ -721,6 +724,7 @@ public class UpgradeResourceProvider extends AbstractControllerResourceProvider 
     Map<String, Map<String, String>> newConfigurationsByType = null;
     ConfigHelper configHelper = getManagementController().getConfigHelper();
 
+    // TODO AMBARI-12698, handle jumping across several stacks and applying configs.
     if (direction == Direction.UPGRADE) {
       // populate a map of default configurations for the old stack (this is
       // used when determining if a property has been customized and should be
@@ -876,8 +880,10 @@ public class UpgradeResourceProvider extends AbstractControllerResourceProvider 
           throws AmbariException {
 
     switch (wrapper.getType()) {
+      case START:
+      case STOP:
       case RESTART:
-        makeRestartStage(context, request, entity, wrapper, skippable, allowRetry);
+        makeCommandStage(context, request, entity, wrapper, skippable, allowRetry);
         break;
       case RU_TASKS:
         makeActionStage(context, request, entity, wrapper, skippable, allowRetry);
@@ -967,7 +973,17 @@ public class UpgradeResourceProvider extends AbstractControllerResourceProvider 
     request.addStages(Collections.singletonList(stage));
   }
 
-  private void makeRestartStage(UpgradeContext context, RequestStageContainer request,
+  /**
+   * Used to create a stage for restart, start, or stop.
+   * @param context Upgrade Context
+   * @param request Container for stage
+   * @param entity Upgrade Item
+   * @param wrapper Stage
+   * @param skippable Whether the item can be skipped
+   * @param allowRetry Whether the item is allowed to be retried
+   * @throws AmbariException
+   */
+  private void makeCommandStage(UpgradeContext context, RequestStageContainer request,
       UpgradeItemEntity entity, StageWrapper wrapper, boolean skippable, boolean allowRetry)
           throws AmbariException {
 
@@ -981,16 +997,36 @@ public class UpgradeResourceProvider extends AbstractControllerResourceProvider 
           new ArrayList<String>(tw.getHosts())));
     }
 
-    Map<String, String> restartCommandParams = getNewParameterMap();
-    restartCommandParams.put(COMMAND_PARAM_RESTART_TYPE, "rolling_upgrade");
-    restartCommandParams.put(COMMAND_PARAM_VERSION, context.getVersion());
-    restartCommandParams.put(COMMAND_PARAM_DIRECTION, context.getDirection().name().toLowerCase());
-    restartCommandParams.put(COMMAND_PARAM_ORIGINAL_STACK,context.getOriginalStackId().getStackId());
-    restartCommandParams.put(COMMAND_PARAM_TARGET_STACK, context.getTargetStackId().getStackId());
-    restartCommandParams.put(COMMAND_DOWNGRADE_FROM_VERSION, context.getDowngradeFromVersion());
+    String function = null;
+    switch (wrapper.getType()) {
+      case START:
+      case STOP:
+      case RESTART:
+        function = wrapper.getType().name();
+        break;
+      default:
+        function = "UNKNOWN";
+        break;
+    }
+
+    Map<String, String> commandParams = getNewParameterMap();
+
+    // TODO AMBARI-12698, change COMMAND_PARAM_RESTART_TYPE to something that isn't "RESTART" specific.
+    if (context.getType() == UpgradeType.ROLLING) {
+      commandParams.put(COMMAND_PARAM_RESTART_TYPE, "rolling_upgrade");
+    }
+    if (context.getType() == UpgradeType.NONROLLING) {
+      commandParams.put(COMMAND_PARAM_RESTART_TYPE, "nonrolling_upgrade");
+    }
+
+    commandParams.put(COMMAND_PARAM_VERSION, context.getVersion());
+    commandParams.put(COMMAND_PARAM_DIRECTION, context.getDirection().name().toLowerCase());
+    commandParams.put(COMMAND_PARAM_ORIGINAL_STACK, context.getOriginalStackId().getStackId());
+    commandParams.put(COMMAND_PARAM_TARGET_STACK, context.getTargetStackId().getStackId());
+    commandParams.put(COMMAND_DOWNGRADE_FROM_VERSION, context.getDowngradeFromVersion());
 
     ActionExecutionContext actionContext = new ActionExecutionContext(cluster.getClusterName(),
-        "RESTART", filters, restartCommandParams);
+        function, filters, commandParams);
     actionContext.setTimeout(Short.valueOf(s_configuration.getDefaultAgentTaskTimeout(false)));
     actionContext.setIgnoreMaintenance(true);
 
@@ -1008,11 +1044,12 @@ public class UpgradeResourceProvider extends AbstractControllerResourceProvider 
     if (0L == stageId) {
       stageId = 1L;
     }
+
     stage.setStageId(stageId);
     entity.setStageId(Long.valueOf(stageId));
 
     Map<String, String> requestParams = new HashMap<String, String>();
-    requestParams.put("command", "RESTART");
+    requestParams.put("command", function);
 
     s_commandExecutionHelper.get().addExecutionCommandsToStage(actionContext, stage, requestParams,
         allowRetry);

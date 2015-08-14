@@ -17,6 +17,7 @@
 -->
 <upgrade xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
   <target>2.2.*</target>
+  <type>rolling</type>
   
   <order>
   

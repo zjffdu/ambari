@@ -25,6 +25,7 @@ import java.util.Map;
 import org.apache.ambari.server.api.services.AmbariMetaInfo;
 import org.apache.ambari.server.stack.MasterHostResolver;
 import org.apache.ambari.server.state.stack.upgrade.Direction;
+import org.apache.ambari.server.state.stack.upgrade.UpgradeType;
 
 /**
  * Used to hold various helper objects required to process an upgrade pack.
@@ -54,6 +55,7 @@ public class UpgradeContext {
   private Map<String, String> m_serviceNames = new HashMap<String, String>();
   private Map<String, String> m_componentNames = new HashMap<String, String>();
   private String m_downgradeFromVersion = null;
+  private UpgradeType m_type = null;
 
   /**
    * Constructor.
@@ -74,15 +76,18 @@ public class UpgradeContext {
    *          the target version to upgrade to
    * @param direction
    *          the direction for the upgrade
+   * @param type
+   *          the type of upgrade, either rolling or nonrolling
    */
   public UpgradeContext(MasterHostResolver resolver, StackId sourceStackId,
       StackId targetStackId, String version,
-      Direction direction) {
+      Direction direction, UpgradeType type) {
     m_version = version;
     m_originalStackId = sourceStackId;
     m_targetStackId = targetStackId;
     m_direction = direction;
     m_resolver = resolver;
+    m_type = type;
   }
 
   /**
@@ -104,6 +109,13 @@ public class UpgradeContext {
    */
   public Direction getDirection() {
     return m_direction;
+  }
+
+  /**
+   * @return the type of upgrade.
+   */
+  public UpgradeType getType() {
+    return m_type;
   }
 
   /**

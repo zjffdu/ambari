@@ -38,9 +38,12 @@ import org.apache.ambari.server.state.stack.upgrade.ConfigureTask;
 import org.apache.ambari.server.state.stack.upgrade.ConfigureTask.Transfer;
 import org.apache.ambari.server.state.stack.upgrade.Direction;
 import org.apache.ambari.server.state.stack.upgrade.Grouping;
+import org.apache.ambari.server.state.stack.upgrade.RestartGrouping;
 import org.apache.ambari.server.state.stack.upgrade.RestartTask;
+import org.apache.ambari.server.state.stack.upgrade.StopGrouping;
 import org.apache.ambari.server.state.stack.upgrade.Task;
 import org.apache.ambari.server.state.stack.upgrade.TransferOperation;
+import org.apache.ambari.server.state.stack.upgrade.UpgradeType;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -188,7 +191,7 @@ public class UpgradePackTest {
   }
 
   @Test
-  public void testGroupOrders() {
+  public void testGroupOrdersForRolling() {
     Map<String, UpgradePack> upgrades = ambariMetaInfo.getUpgradePacks("HDP", "2.1.1");
     assertTrue(upgrades.size() > 0);
     assertTrue(upgrades.containsKey("upgrade_test_checks"));
@@ -228,13 +231,44 @@ public class UpgradePackTest {
     }
   }
 
+
+  // TODO AMBARI-12698, add the Downgrade case
   @Test
-  public void testDirection() throws Exception {
+  public void testGroupOrdersForNonRolling() {
+    Map<String, UpgradePack> upgrades = ambariMetaInfo.getUpgradePacks("HDP", "2.1.1");
+    assertTrue(upgrades.size() > 0);
+    assertTrue(upgrades.containsKey("upgrade_test_nonrolling"));
+
+    UpgradePack up = upgrades.get("upgrade_test_nonrolling");
+
+    List<String> expected_up = Arrays.asList(
+        "PRE_CLUSTER",
+        "Stop High-Level Daemons",
+        "Backups",
+        "Stop Low-Level Daemons",
+        "ALL_HOST_OPS",
+        "ZOOKEEPER",
+        "HDFS",
+        "MR and YARN",
+        "POST_CLUSTER");
+
+    int i = 0;
+    List<Grouping> groups = up.getGroups(Direction.UPGRADE);
+    for (Grouping g : groups) {
+      assertEquals(expected_up.get(i), g.name);
+      i++;
+    }
+  }
+
+
+  @Test
+  public void testDirectionForRolling() throws Exception {
     Map<String, UpgradePack> upgrades = ambariMetaInfo.getUpgradePacks("HDP", "2.1.1");
     assertTrue(upgrades.size() > 0);
     assertTrue(upgrades.containsKey("upgrade_direction"));
 
     UpgradePack up = upgrades.get("upgrade_direction");
+    assertTrue(up.getType() == UpgradeType.ROLLING);
 
     List<Grouping> groups = up.getGroups(Direction.UPGRADE);
     assertEquals(4, groups.size());
@@ -259,9 +293,70 @@ public class UpgradePackTest {
     group = groups.get(2);
     assertEquals(ClusterGrouping.class, group.getClass());
     assertEquals("Finalize Upgrade", group.title);
-
   }
 
+  @Test
+  public void testDirectionForNonRolling() throws Exception {
+    Map<String, UpgradePack> upgrades = ambariMetaInfo.getUpgradePacks("HDP", "2.1.1");
+    assertTrue(upgrades.size() > 0);
+    assertTrue(upgrades.containsKey("upgrade_test_nonrolling"));
+
+    UpgradePack up = upgrades.get("upgrade_test_nonrolling");
+    assertTrue(up.getType() == UpgradeType.NONROLLING);
+
+    List<Grouping> groups = up.getGroups(Direction.UPGRADE);
+    assertEquals(9, groups.size());
+
+    Grouping group = null;
+    ClusterGrouping clusterGroup = null;
+    StopGrouping stopGroup = null;
+    RestartGrouping restartGroup = null;
+
+    group = groups.get(0);
+    assertEquals(ClusterGrouping.class, group.getClass());
+    clusterGroup = (ClusterGrouping) group;
+    assertEquals("Prepare Upgrade", clusterGroup.title);
+
+    group = groups.get(1);
+    assertEquals(StopGrouping.class, group.getClass());
+    stopGroup = (StopGrouping) group;
+    assertEquals("Stop Daemons for High-Level Services", stopGroup.title);
+
+    group = groups.get(2);
+    assertEquals(ClusterGrouping.class, group.getClass());
+    clusterGroup = (ClusterGrouping) group;
+    assertEquals("Take Backups", clusterGroup.title);
+
+    group = groups.get(3);
+    assertEquals(StopGrouping.class, group.getClass());
+    stopGroup = (StopGrouping) group;
+    assertEquals("Stop Daemons for Low-Level Services", stopGroup.title);
+
+    group = groups.get(4);
+    assertEquals(ClusterGrouping.class, group.getClass());
+    clusterGroup = (ClusterGrouping) group;
+    assertEquals("Set Version On All Hosts", clusterGroup.title);
+
+    group = groups.get(5);
+    assertEquals(RestartGrouping.class, group.getClass());
+    restartGroup = (RestartGrouping) group;
+    assertEquals("Zookeeper", restartGroup.title);
+
+    group = groups.get(6);
+    assertEquals(RestartGrouping.class, group.getClass());
+    restartGroup = (RestartGrouping) group;
+    assertEquals("HDFS", restartGroup.title);
+
+    group = groups.get(7);
+    assertEquals(RestartGrouping.class, group.getClass());
+    restartGroup = (RestartGrouping) group;
+    assertEquals("MR and YARN", restartGroup.title);
+
+    group = groups.get(8);
+    assertEquals(ClusterGrouping.class, group.getClass());
+    clusterGroup = (ClusterGrouping) group;
+    assertEquals("Finalize {{direction.text.proper}}", clusterGroup.title);
+  }
 
   private int indexOf(Map<String, ?> map, String keyToFind) {
     int result = -1;
@@ -276,6 +371,4 @@ public class UpgradePackTest {
 
     return result;
   }
-
-
 }

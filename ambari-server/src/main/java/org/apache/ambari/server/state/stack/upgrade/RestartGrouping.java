@@ -16,25 +16,21 @@
  * limitations under the License.
  */
 package org.apache.ambari.server.state.stack.upgrade;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import javax.xml.bind.annotation.XmlAttribute;
+import javax.xml.bind.annotation.XmlType;
 
 /**
- *
+ * Used for a group that restarts services.
  */
-public abstract class ServerSideActionTask extends Task {
+@XmlType(name="restart")
+public class RestartGrouping extends Grouping implements UpgradeFunction {
 
-  @XmlAttribute(name="class")
-  protected String implClass;
-
-  public static final String actionVerb = "Executing";
-
-  public String getImplementationClass() {
-    return implClass;
-  }
+  private static Logger LOG = LoggerFactory.getLogger(RestartGrouping.class);
 
   @Override
-  public String getActionVerb() {
-    return actionVerb;
+  public Task.Type getFunction() {
+    return Task.Type.RESTART;
   }
 }

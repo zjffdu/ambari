@@ -17,24 +17,10 @@
  */
 package org.apache.ambari.server.state.stack.upgrade;
 
-import javax.xml.bind.annotation.XmlAttribute;
+public interface UpgradeFunction {
 
-/**
- *
- */
-public abstract class ServerSideActionTask extends Task {
-
-  @XmlAttribute(name="class")
-  protected String implClass;
-
-  public static final String actionVerb = "Executing";
-
-  public String getImplementationClass() {
-    return implClass;
-  }
-
-  @Override
-  public String getActionVerb() {
-    return actionVerb;
-  }
+  /**
+   * @return Return the function that the group must provide.
+   */
+  public Task.Type getFunction();
 }

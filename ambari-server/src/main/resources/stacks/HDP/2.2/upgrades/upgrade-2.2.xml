@@ -19,9 +19,9 @@
 
 <upgrade xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
   <target>2.2.*.*</target>
+  <type>rolling</type>
 
   <order>
-
     <group xsi:type="cluster" name="PRE_CLUSTER" title="Prepare Upgrade">
       <direction>UPGRADE</direction>
       <execute-stage service="HDFS" component="NAMENODE" title="Pre Upgrade HDFS">
@@ -34,7 +34,7 @@
       <execute-stage service="HBASE" component="HBASE_MASTER" title="Pre Upgrade HBase">
         <task xsi:type="execute" hosts="master">
           <script>scripts/hbase_upgrade.py</script>
-          <function>snapshot</function>
+          <function>take_snapshot</function>
         </task>
       </execute-stage>
 
@@ -310,13 +310,13 @@
     <service name="ZOOKEEPER">
       <component name="ZOOKEEPER_SERVER">
         <upgrade>
-          <task xsi:type="restart" />
+          <task xsi:type="restart-task" />
         </upgrade>
       </component>
 
       <component name="ZOOKEEPER_CLIENT">
         <upgrade>
-          <task xsi:type="restart" />
+          <task xsi:type="restart-task" />
         </upgrade>
       </component>
     </service>
@@ -324,13 +324,13 @@
     <service name="RANGER">
       <component name="RANGER_ADMIN">
         <upgrade>
-          <task xsi:type="restart" />
+          <task xsi:type="restart-task" />
         </upgrade>
       </component>
 
       <component name="RANGER_USERSYNC">
         <upgrade>
-          <task xsi:type="restart" />
+          <task xsi:type="restart-task" />
         </upgrade>
       </component>
     </service>
@@ -338,31 +338,31 @@
     <service name="HDFS">
       <component name="NAMENODE">
         <upgrade>
-          <task xsi:type="restart" />
+          <task xsi:type="restart-task" />
         </upgrade>
       </component>
 
       <component name="DATANODE">
         <upgrade>
-          <task xsi:type="restart" />
+          <task xsi:type="restart-task" />
         </upgrade>
       </component>
 
       <component name="HDFS_CLIENT">
         <upgrade>
-          <task xsi:type="restart" />
+          <task xsi:type="restart-task" />
         </upgrade>
       </component>
 
       <component name="JOURNALNODE">
         <upgrade>
-          <task xsi:type="restart" />
+          <task xsi:type="restart-task" />
         </upgrade>
       </component>
 
       <component name="ZKFC">
         <upgrade>
-          <task xsi:type="restart" />
+          <task xsi:type="restart-task" />
         </upgrade>
       </component>
     </service>
@@ -370,13 +370,13 @@
     <service name="MAPREDUCE2">
       <component name="HISTORYSERVER">
         <upgrade>
-          <task xsi:type="restart" />
+          <task xsi:type="restart-task" />
         </upgrade>
       </component>
 
       <component name="MAPREDUCE2_CLIENT">
         <upgrade>
-          <task xsi:type="restart" />
+          <task xsi:type="restart-task" />
         </upgrade>
       </component>
     </service>
@@ -384,44 +384,44 @@
     <service name="YARN">
       <component name="APP_TIMELINE_SERVER">
         <upgrade>
-          <task xsi:type="restart" />
+          <task xsi:type="restart-task" />
         </upgrade>
       </component>
 
       <component name="RESOURCEMANAGER">
         <upgrade>
-          <task xsi:type="restart" />
+          <task xsi:type="restart-task" />
         </upgrade>
       </component>
 
       <component name="NODEMANAGER">
         <upgrade>
-          <task xsi:type="restart" />
+          <task xsi:type="restart-task" />
         </upgrade>
       </component>
 
       <component name="YARN_CLIENT">
         <upgrade>
-          <task xsi:type="restart" />
+          <task xsi:type="restart-task" />
         </upgrade>
       </component>
     </service>
     <service name="HBASE">
       <component name="HBASE_MASTER">
         <upgrade>
-          <task xsi:type="restart" />
+          <task xsi:type="restart-task" />
         </upgrade>
       </component>
 
       <component name="HBASE_REGIONSERVER">
         <upgrade>
-          <task xsi:type="restart" />
+          <task xsi:type="restart-task" />
         </upgrade>
       </component>
 
       <component name="HBASE_CLIENT">
         <upgrade>
-          <task xsi:type="restart" />
+          <task xsi:type="restart-task" />
         </upgrade>
       </component>
     </service>
@@ -429,7 +429,7 @@
     <service name="TEZ">
       <component name="TEZ_CLIENT">
         <upgrade>
-          <task xsi:type="restart" />
+          <task xsi:type="restart-task" />
         </upgrade>
       </component>
     </service>
@@ -437,7 +437,7 @@
     <service name="PIG">
       <component name="PIG">
         <upgrade>
-          <task xsi:type="restart" />
+          <task xsi:type="restart-task" />
         </upgrade>
       </component>
     </service>
@@ -445,7 +445,7 @@
     <service name="SQOOP">
       <component name="SQOOP">
         <upgrade>
-          <task xsi:type="restart" />
+          <task xsi:type="restart-task" />
         </upgrade>
       </component>
     </service>
@@ -453,7 +453,7 @@
     <service name="HIVE">
       <component name="HIVE_METASTORE">
         <upgrade>
-          <task xsi:type="restart" />
+          <task xsi:type="restart-task" />
         </upgrade>
       </component>
 
@@ -499,25 +499,25 @@
         </pre-downgrade>
 
         <upgrade>
-          <task xsi:type="restart" />
+          <task xsi:type="restart-task" />
         </upgrade>
       </component>
 
       <component name="WEBHCAT_SERVER">
         <upgrade>
-          <task xsi:type="restart" />
+          <task xsi:type="restart-task" />
         </upgrade>
       </component>
 
       <component name="HIVE_CLIENT">
         <upgrade>
-          <task xsi:type="restart" />
+          <task xsi:type="restart-task" />
         </upgrade>
       </component>
 
       <component name="HCAT">
         <upgrade>
-          <task xsi:type="restart" />
+          <task xsi:type="restart-task" />
         </upgrade>
       </component>
     </service>
@@ -525,7 +525,7 @@
     <service name="SLIDER">
       <component name="SLIDER">
         <upgrade>
-          <task xsi:type="restart" />
+          <task xsi:type="restart-task" />
         </upgrade>
       </component>
     </service>
@@ -533,12 +533,12 @@
     <service name="SPARK">
       <component name="SPARK_JOBHISTORYSERVER">
         <upgrade>
-          <task xsi:type="restart" />
+          <task xsi:type="restart-task" />
         </upgrade>
       </component>
       <component name="SPARK_CLIENT">
         <upgrade>
-          <task xsi:type="restart" />
+          <task xsi:type="restart-task" />
         </upgrade>
       </component>
     </service>
@@ -570,13 +570,13 @@
         </pre-downgrade>
 
         <upgrade>
-          <task xsi:type="restart" />
+          <task xsi:type="restart-task" />
         </upgrade>
       </component>
 
       <component name="OOZIE_CLIENT">
         <upgrade>
-          <task xsi:type="restart" />
+          <task xsi:type="restart-task" />
         </upgrade>
       </component>
     </service>
@@ -584,12 +584,12 @@
     <service name="FALCON">
       <component name="FALCON_SERVER">
         <upgrade>
-          <task xsi:type="restart" />
+          <task xsi:type="restart-task" />
         </upgrade>
       </component>
       <component name="FALCON_CLIENT">
         <upgrade>
-          <task xsi:type="restart" />
+          <task xsi:type="restart-task" />
         </upgrade>
       </component>
     </service>
@@ -597,7 +597,7 @@
     <service name="KAFKA">
       <component name="KAFKA_BROKER">
         <upgrade>
-          <task xsi:type="restart" />
+          <task xsi:type="restart-task" />
         </upgrade>
       </component>
     </service>
@@ -605,7 +605,7 @@
     <service name="KNOX">
       <component name="KNOX_GATEWAY">
         <upgrade>
-          <task xsi:type="restart" />
+          <task xsi:type="restart-task" />
         </upgrade>
       </component>
     </service>
@@ -618,27 +618,27 @@
           </task>
         </pre-upgrade>
         <upgrade>
-          <task xsi:type="restart" />
+          <task xsi:type="restart-task" />
         </upgrade>
       </component>
       <component name="STORM_REST_API">
         <upgrade>
-          <task xsi:type="restart" />
+          <task xsi:type="restart-task" />
         </upgrade>
       </component>
       <component name="SUPERVISOR">
         <upgrade>
-          <task xsi:type="restart" />
+          <task xsi:type="restart-task" />
         </upgrade>
       </component>
       <component name="STORM_UI_SERVER">
         <upgrade>
-          <task xsi:type="restart" />
+          <task xsi:type="restart-task" />
         </upgrade>
       </component>
       <component name="DRPC_SERVER">
         <upgrade>
-          <task xsi:type="restart" />
+          <task xsi:type="restart-task" />
         </upgrade>
         <post-upgrade>
           <task xsi:type="manual">
@@ -651,7 +651,7 @@
     <service name="FLUME">
       <component name="FLUME_HANDLER">
         <upgrade>
-          <task xsi:type="restart" />
+          <task xsi:type="restart-task" />
         </upgrade>
       </component>
     </service>

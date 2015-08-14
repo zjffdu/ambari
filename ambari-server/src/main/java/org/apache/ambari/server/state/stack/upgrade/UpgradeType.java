@@ -17,24 +17,20 @@
  */
 package org.apache.ambari.server.state.stack.upgrade;
 
-import javax.xml.bind.annotation.XmlAttribute;
+import javax.xml.bind.annotation.XmlEnumValue;
 
 /**
- *
+ * Indicates the type of Upgrade performed.
  */
-public abstract class ServerSideActionTask extends Task {
-
-  @XmlAttribute(name="class")
-  protected String implClass;
-
-  public static final String actionVerb = "Executing";
-
-  public String getImplementationClass() {
-    return implClass;
-  }
-
-  @Override
-  public String getActionVerb() {
-    return actionVerb;
-  }
+public enum UpgradeType {
+  /**
+   * Services are up the entire time
+   */
+  @XmlEnumValue("rolling")
+  ROLLING,
+  /**
+   * All services are stopped, then started
+   */
+  @XmlEnumValue("nonrolling")
+  NONROLLING;
 }

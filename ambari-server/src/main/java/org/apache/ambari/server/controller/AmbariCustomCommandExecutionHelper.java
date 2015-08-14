@@ -919,7 +919,7 @@ public class AmbariCustomCommandExecutionHelper {
 
         String commandDetail = getReadableCustomCommandDetail(actionExecutionContext, resourceFilter);
 
-        Map<String, String> extraParams = new HashMap<String, String>();;
+        Map<String, String> extraParams = new HashMap<String, String>();
         String componentName = (null == resourceFilter.getComponentName()) ? null :
             resourceFilter.getComponentName().toLowerCase();
 
