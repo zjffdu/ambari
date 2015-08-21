@@ -19,7 +19,7 @@
 
 <upgrade xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
   <target>2.2.*.*</target>
-  <type>nonrolling</type>
+  <type>NON_ROLLING</type>
 
   <order>
     <group xsi:type="cluster" name="PRE_CLUSTER" title="Prepare Upgrade">
@@ -128,7 +128,7 @@
       <execute-stage service="HDFS" component="NAMENODE" title="Snapshot HDFS">
         <task xsi:type="execute" hosts="master">  <!-- TODO, this can be any NameNode, not just the active. -->
           <script>scripts/namenode.py</script>
-          <function>prepare_nonrolling_upgrade</function>
+          <function>prepare_non_rolling_upgrade</function>
         </task>
       </execute-stage>
 
@@ -446,7 +446,7 @@
       <execute-stage service="HDFS" component="NAMENODE" title="Execute HDFS Finalize">
         <task xsi:type="execute" hosts="master">      <!-- TODO, what happens if there's no HA. -->
           <script>scripts/namenode.py</script>
-          <function>finalize_nonrolling_upgrade</function>
+          <function>finalize_non_rolling_upgrade</function>
         </task>
       </execute-stage>
 

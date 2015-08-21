@@ -131,7 +131,6 @@ public class UpgradeHelperTest {
     ComponentInfo ci = si.getComponentByName("ZOOKEEPER_SERVER");
     ci.setDisplayName("ZooKeeper1 Server2");
 
-
     assertTrue(upgrades.containsKey("upgrade_test"));
     UpgradePack upgrade = upgrades.get("upgrade_test");
     assertNotNull(upgrade);
@@ -372,9 +371,7 @@ public class UpgradeHelperTest {
 
   @Test
   public void testConditionalDeleteTask() throws Exception {
-    Map<String, UpgradePack> upgrades = ambariMetaInfo.getUpgradePacks("HDP",
-                                                                       "2.1.1");
-
+    Map<String, UpgradePack> upgrades = ambariMetaInfo.getUpgradePacks("HDP", "2.1.1");
     assertTrue(upgrades.containsKey("upgrade_test"));
     UpgradePack upgrade = upgrades.get("upgrade_test");
     assertNotNull(upgrade);
@@ -384,8 +381,7 @@ public class UpgradeHelperTest {
     UpgradeContext context = new UpgradeContext(m_masterHostResolver, HDP_21,
                                                 HDP_21, UPGRADE_VERSION, Direction.UPGRADE, UpgradeType.ROLLING);
 
-    List<UpgradeGroupHolder> groups = m_upgradeHelper.createSequence(upgrade,
-                                                                     context);
+    List<UpgradeGroupHolder> groups = m_upgradeHelper.createSequence(upgrade, context);
 
     assertEquals(6, groups.size());
 
@@ -446,9 +442,7 @@ public class UpgradeHelperTest {
 
   @Test
   public void testConfigureTask() throws Exception {
-    Map<String, UpgradePack> upgrades = ambariMetaInfo.getUpgradePacks("HDP",
-        "2.1.1");
-
+    Map<String, UpgradePack> upgrades = ambariMetaInfo.getUpgradePacks("HDP", "2.1.1");
     assertTrue(upgrades.containsKey("upgrade_test"));
     UpgradePack upgrade = upgrades.get("upgrade_test");
     assertNotNull(upgrade);
@@ -523,11 +517,9 @@ public class UpgradeHelperTest {
   @Test
   public void testConfigureTaskWithMultipleConfigurations() throws Exception {
     Map<String, UpgradePack> upgrades = ambariMetaInfo.getUpgradePacks("HDP", "2.1.1");
-
     assertTrue(upgrades.containsKey("upgrade_test"));
     UpgradePack upgrade = upgrades.get("upgrade_test");
     assertNotNull(upgrade);
-
     Cluster cluster = makeCluster();
 
     UpgradeContext context = new UpgradeContext(m_masterHostResolver, HDP_21, HDP_21,
@@ -937,6 +929,7 @@ public class UpgradeHelperTest {
         Direction.DOWNGRADE, UpgradeType.ROLLING);
 
     Map<String, UpgradePack> upgrades = ambariMetaInfo.getUpgradePacks("HDP", "2.1.1");
+    assertTrue(upgrades.containsKey("upgrade_direction"));
     UpgradePack upgrade = upgrades.get("upgrade_direction");
     assertNotNull(upgrade);
 

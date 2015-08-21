@@ -88,9 +88,8 @@ public class UpgradePackTest {
     Map<String, UpgradePack> upgrades = ambariMetaInfo.getUpgradePacks("HDP", "2.1.1");
     assertTrue(upgrades.size() > 0);
     assertTrue(upgrades.containsKey("upgrade_test"));
-
-    UpgradePack up = upgrades.get("upgrade_test");
-    assertEquals("2.2.*", up.getTarget());
+    UpgradePack upgrade = upgrades.get("upgrade_test");
+    assertEquals("2.2.*.*", upgrade.getTarget());
 
     Map<String, List<String>> expectedStages = new LinkedHashMap<String, List<String>>() {{
       put("ZOOKEEPER", Arrays.asList("ZOOKEEPER_SERVER"));
@@ -100,24 +99,24 @@ public class UpgradePackTest {
     // !!! test the tasks
     int i = 0;
     for (Entry<String, List<String>> entry : expectedStages.entrySet()) {
-      assertTrue(up.getTasks().containsKey(entry.getKey()));
-      assertEquals(i++, indexOf(up.getTasks(), entry.getKey()));
+      assertTrue(upgrade.getTasks().containsKey(entry.getKey()));
+      assertEquals(i++, indexOf(upgrade.getTasks(), entry.getKey()));
 
       // check that the number of components matches
-      assertEquals(entry.getValue().size(), up.getTasks().get(entry.getKey()).size());
+      assertEquals(entry.getValue().size(), upgrade.getTasks().get(entry.getKey()).size());
 
       // check component ordering
       int j = 0;
       for (String comp : entry.getValue()) {
-        assertEquals(j++, indexOf(up.getTasks().get(entry.getKey()), comp));
+        assertEquals(j++, indexOf(upgrade.getTasks().get(entry.getKey()), comp));
       }
     }
 
     // !!! test specific tasks
-    assertTrue(up.getTasks().containsKey("HDFS"));
-    assertTrue(up.getTasks().get("HDFS").containsKey("NAMENODE"));
+    assertTrue(upgrade.getTasks().containsKey("HDFS"));
+    assertTrue(upgrade.getTasks().get("HDFS").containsKey("NAMENODE"));
 
-    ProcessingComponent pc = up.getTasks().get("HDFS").get("NAMENODE");
+    ProcessingComponent pc = upgrade.getTasks().get("HDFS").get("NAMENODE");
     assertNotNull(pc.preTasks);
     assertNotNull(pc.postTasks);
     assertNotNull(pc.tasks);
@@ -129,17 +128,17 @@ public class UpgradePackTest {
     assertEquals(RestartTask.class, pc.tasks.get(0).getClass());
 
 
-    assertTrue(up.getTasks().containsKey("ZOOKEEPER"));
-    assertTrue(up.getTasks().get("ZOOKEEPER").containsKey("ZOOKEEPER_SERVER"));
+    assertTrue(upgrade.getTasks().containsKey("ZOOKEEPER"));
+    assertTrue(upgrade.getTasks().get("ZOOKEEPER").containsKey("ZOOKEEPER_SERVER"));
 
-    pc = up.getTasks().get("HDFS").get("DATANODE");
+    pc = upgrade.getTasks().get("HDFS").get("DATANODE");
     assertNotNull(pc.preDowngradeTasks);
     assertEquals(0, pc.preDowngradeTasks.size());
     assertNotNull(pc.postDowngradeTasks);
     assertEquals(1, pc.postDowngradeTasks.size());
 
 
-    pc = up.getTasks().get("ZOOKEEPER").get("ZOOKEEPER_SERVER");
+    pc = upgrade.getTasks().get("ZOOKEEPER").get("ZOOKEEPER_SERVER");
     assertNotNull(pc.preTasks);
     assertEquals(1, pc.preTasks.size());
     assertNotNull(pc.postTasks);
@@ -147,7 +146,7 @@ public class UpgradePackTest {
     assertNotNull(pc.tasks);
     assertEquals(1, pc.tasks.size());
 
-    pc = up.getTasks().get("YARN").get("NODEMANAGER");
+    pc = upgrade.getTasks().get("YARN").get("NODEMANAGER");
     assertNotNull(pc.preTasks);
     assertEquals(2, pc.preTasks.size());
     Task t = pc.preTasks.get(1);
@@ -195,8 +194,7 @@ public class UpgradePackTest {
     Map<String, UpgradePack> upgrades = ambariMetaInfo.getUpgradePacks("HDP", "2.1.1");
     assertTrue(upgrades.size() > 0);
     assertTrue(upgrades.containsKey("upgrade_test_checks"));
-
-    UpgradePack up = upgrades.get("upgrade_test_checks");
+    UpgradePack upgrade = upgrades.get("upgrade_test_checks");
 
     List<String> expected_up = Arrays.asList(
         "PRE_CLUSTER",
@@ -217,14 +215,14 @@ public class UpgradePackTest {
         "POST_CLUSTER");
 
     int i = 0;
-    List<Grouping> groups = up.getGroups(Direction.UPGRADE);
+    List<Grouping> groups = upgrade.getGroups(Direction.UPGRADE);
     for (Grouping g : groups) {
       assertEquals(expected_up.get(i), g.name);
       i++;
     }
 
     i = 0;
-    groups = up.getGroups(Direction.DOWNGRADE);
+    groups = upgrade.getGroups(Direction.DOWNGRADE);
     for (Grouping g : groups) {
       assertEquals(expected_down.get(i), g.name);
       i++;
@@ -238,8 +236,7 @@ public class UpgradePackTest {
     Map<String, UpgradePack> upgrades = ambariMetaInfo.getUpgradePacks("HDP", "2.1.1");
     assertTrue(upgrades.size() > 0);
     assertTrue(upgrades.containsKey("upgrade_test_nonrolling"));
-
-    UpgradePack up = upgrades.get("upgrade_test_nonrolling");
+    UpgradePack upgrade = upgrades.get("upgrade_test_nonrolling");
 
     List<String> expected_up = Arrays.asList(
         "PRE_CLUSTER",
@@ -253,7 +250,7 @@ public class UpgradePackTest {
         "POST_CLUSTER");
 
     int i = 0;
-    List<Grouping> groups = up.getGroups(Direction.UPGRADE);
+    List<Grouping> groups = upgrade.getGroups(Direction.UPGRADE);
     for (Grouping g : groups) {
       assertEquals(expected_up.get(i), g.name);
       i++;
@@ -266,11 +263,10 @@ public class UpgradePackTest {
     Map<String, UpgradePack> upgrades = ambariMetaInfo.getUpgradePacks("HDP", "2.1.1");
     assertTrue(upgrades.size() > 0);
     assertTrue(upgrades.containsKey("upgrade_direction"));
+    UpgradePack upgrade = upgrades.get("upgrade_direction");
+    assertTrue(upgrade.getType() == UpgradeType.ROLLING);
 
-    UpgradePack up = upgrades.get("upgrade_direction");
-    assertTrue(up.getType() == UpgradeType.ROLLING);
-
-    List<Grouping> groups = up.getGroups(Direction.UPGRADE);
+    List<Grouping> groups = upgrade.getGroups(Direction.UPGRADE);
     assertEquals(4, groups.size());
     Grouping group = groups.get(2);
     assertEquals(ClusterGrouping.class, group.getClass());
@@ -283,7 +279,7 @@ public class UpgradePackTest {
     assertNotNull(stages.get(0).intendedDirection);
     assertEquals(Direction.DOWNGRADE, stages.get(0).intendedDirection);
 
-    groups = up.getGroups(Direction.DOWNGRADE);
+    groups = upgrade.getGroups(Direction.DOWNGRADE);
     assertEquals(3, groups.size());
     // there are two clustergroupings at the end
     group = groups.get(1);
@@ -300,11 +296,10 @@ public class UpgradePackTest {
     Map<String, UpgradePack> upgrades = ambariMetaInfo.getUpgradePacks("HDP", "2.1.1");
     assertTrue(upgrades.size() > 0);
     assertTrue(upgrades.containsKey("upgrade_test_nonrolling"));
+    UpgradePack upgrade = upgrades.get("upgrade_test_nonrolling");
+    assertTrue(upgrade.getType() == UpgradeType.NON_ROLLING);
 
-    UpgradePack up = upgrades.get("upgrade_test_nonrolling");
-    assertTrue(up.getType() == UpgradeType.NONROLLING);
-
-    List<Grouping> groups = up.getGroups(Direction.UPGRADE);
+    List<Grouping> groups = upgrade.getGroups(Direction.UPGRADE);
     assertEquals(9, groups.size());
 
     Grouping group = null;

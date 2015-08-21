@@ -95,7 +95,6 @@ public class StackDirectory extends StackDefinitionDirectory {
   /**
    * map of upgrade pack name to upgrade pack
    */
-  //todo: should be a collection but upgrade pack doesn't have a name attribute
   private Map<String, UpgradePack> upgradePacks;
 
   /**
@@ -412,8 +411,10 @@ public class StackDirectory extends StackDefinitionDirectory {
         upgradesDir = f.getAbsolutePath();
         for (File upgradeFile : f.listFiles(XML_FILENAME_FILTER)) {
           try {
-            upgradeMap.put(FilenameUtils.removeExtension(upgradeFile.getName()),
-                unmarshaller.unmarshal(UpgradePack.class, upgradeFile));
+            String upgradePackName = FilenameUtils.removeExtension(upgradeFile.getName());
+            UpgradePack pack = unmarshaller.unmarshal(UpgradePack.class, upgradeFile);
+            pack.setName(upgradePackName);
+            upgradeMap.put(upgradePackName, pack);
           } catch (JAXBException e) {
             throw new AmbariException("Unable to parse stack upgrade file at location: " +
                 upgradeFile.getAbsolutePath(), e);

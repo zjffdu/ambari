@@ -111,6 +111,8 @@ public class UpgradeResourceProvider extends AbstractControllerResourceProvider 
 
   protected static final String UPGRADE_CLUSTER_NAME = "Upgrade/cluster_name";
   protected static final String UPGRADE_VERSION = "Upgrade/repository_version";
+  protected static final String UPGRADE_TYPE = "Upgrade/type";
+  protected static final String UPGRADE_PACK = "Upgrade/pack";
   protected static final String UPGRADE_REQUEST_ID = "Upgrade/request_id";
   protected static final String UPGRADE_FROM_VERSION = "Upgrade/from_version";
   protected static final String UPGRADE_TO_VERSION = "Upgrade/to_version";
@@ -206,6 +208,8 @@ public class UpgradeResourceProvider extends AbstractControllerResourceProvider 
     // properties
     PROPERTY_IDS.add(UPGRADE_CLUSTER_NAME);
     PROPERTY_IDS.add(UPGRADE_VERSION);
+    PROPERTY_IDS.add(UPGRADE_TYPE);
+    PROPERTY_IDS.add(UPGRADE_PACK);
     PROPERTY_IDS.add(UPGRADE_REQUEST_ID);
     PROPERTY_IDS.add(UPGRADE_FROM_VERSION);
     PROPERTY_IDS.add(UPGRADE_TO_VERSION);
@@ -423,6 +427,8 @@ public class UpgradeResourceProvider extends AbstractControllerResourceProvider 
     ResourceImpl resource = new ResourceImpl(Resource.Type.Upgrade);
 
     setResourceProperty(resource, UPGRADE_CLUSTER_NAME, clusterName, requestedIds);
+    setResourceProperty(resource, UPGRADE_TYPE, entity.getUpgradeType().toString(), requestedIds);
+    setResourceProperty(resource, UPGRADE_PACK, entity.getUpgradePackage(), requestedIds);
     setResourceProperty(resource, UPGRADE_REQUEST_ID, entity.getRequestId(), requestedIds);
     setResourceProperty(resource, UPGRADE_FROM_VERSION, entity.getFromVersion(), requestedIds);
     setResourceProperty(resource, UPGRADE_TO_VERSION, entity.getToVersion(), requestedIds);
@@ -444,6 +450,16 @@ public class UpgradeResourceProvider extends AbstractControllerResourceProvider 
     String clusterName = (String) requestMap.get(UPGRADE_CLUSTER_NAME);
     String version = (String) requestMap.get(UPGRADE_VERSION);
     String versionForUpgradePack = (String) requestMap.get(UPGRADE_FROM_VERSION);
+    /**
+     * For the unit tests tests, there are multiple upgrade packs for the same type, so
+     * allow picking one of them. In prod, this is empty.
+     */
+    String preferredUpgradePackName = (String) requestMap.get(UPGRADE_PACK);
+
+    // The type will determine which Upgrade Pack to use.
+    // TODO AMBARI-12698, uncomment once the UI starts passing the upgrade type.
+    //final UpgradeType upgradeType = (UpgradeType) requestMap.get(UPGRADE_TYPE);
+    final UpgradeType upgradeType = UpgradeType.ROLLING;
 
     if (null == clusterName) {
       throw new AmbariException(String.format("%s is required", UPGRADE_CLUSTER_NAME));
@@ -474,27 +490,34 @@ public class UpgradeResourceProvider extends AbstractControllerResourceProvider 
     Map<String, UpgradePack> packs = s_metaProvider.get().getUpgradePacks(stack.getStackName(),
         stack.getStackVersion());
 
-    UpgradePack up = packs.get(versionEntity.getUpgradePackage());
+    UpgradePack pack = null;
+    if (!preferredUpgradePackName.isEmpty() && packs.containsKey(preferredUpgradePackName)) {
+      pack = packs.get(preferredUpgradePackName);
+    }
 
-    if (null == up) {
+    if (null == pack) {
       // !!! in case there is an upgrade pack that doesn't match the name
       String repoStackId = versionEntity.getStackId().getStackId();
       for (UpgradePack upgradePack : packs.values()) {
-        if (null != upgradePack.getTargetStack()
-            && upgradePack.getTargetStack().equals(repoStackId)) {
-          up = upgradePack;
-          break;
+        if (null != upgradePack.getTargetStack() && upgradePack.getTargetStack().equals(repoStackId) && upgradeType == upgradePack.getType()) {
+          if (null == pack) {
+            pack = upgradePack;
+          } else {
+            throw new AmbariException(
+                String.format("Unable to perform %s. Found multiple upgrade packs for type %s and target version %s",
+                    direction.getText(false), upgradeType.toString(), repoVersion));
+          }
         }
       }
     }
 
-    if (null == up) {
+    if (null == pack) {
       throw new AmbariException(
-          String.format("Unable to perform %s.  Could not locate upgrade pack %s for version %s",
-              direction.getText(false), versionEntity.getUpgradePackage(), repoVersion));
+          String.format("Unable to perform %s. Could not locate %s upgrade pack for version %s",
+              direction.getText(false), upgradeType.toString(), repoVersion));
     }
 
-    return up;
+    return pack;
   }
 
   /**
@@ -646,6 +669,8 @@ public class UpgradeResourceProvider extends AbstractControllerResourceProvider 
     entity.setUpgradeGroups(groupEntities);
     entity.setClusterId(Long.valueOf(cluster.getClusterId()));
     entity.setDirection(direction);
+    entity.setUpgradePackage(pack.getName());
+    entity.setUpgradeType(pack.getType());
 
     req.getRequestStatusResponse();
 
@@ -1015,7 +1040,7 @@ public class UpgradeResourceProvider extends AbstractControllerResourceProvider 
     if (context.getType() == UpgradeType.ROLLING) {
       commandParams.put(COMMAND_PARAM_RESTART_TYPE, "rolling_upgrade");
     }
-    if (context.getType() == UpgradeType.NONROLLING) {
+    if (context.getType() == UpgradeType.NON_ROLLING) {
       commandParams.put(COMMAND_PARAM_RESTART_TYPE, "nonrolling_upgrade");
     }
 

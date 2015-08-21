@@ -77,7 +77,7 @@ public class UpgradeContext {
    * @param direction
    *          the direction for the upgrade
    * @param type
-   *          the type of upgrade, either rolling or nonrolling
+   *          the type of upgrade, either rolling or non_rolling
    */
   public UpgradeContext(MasterHostResolver resolver, StackId sourceStackId,
       StackId targetStackId, String version,

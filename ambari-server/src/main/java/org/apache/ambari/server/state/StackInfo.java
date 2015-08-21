@@ -356,7 +356,7 @@ public class StackInfo implements Comparable<StackInfo>, Validable{
   /**
    * Set upgrade packs.
    *
-   * @param upgradePacks  map of upgrade packs
+   * @param upgradePacks map of upgrade packs
    */
   public void setUpgradePacks(Map<String, UpgradePack> upgradePacks) {
     this.upgradePacks = upgradePacks;

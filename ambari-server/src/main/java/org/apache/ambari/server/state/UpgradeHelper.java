@@ -216,7 +216,7 @@ public class UpgradeHelper {
 
       // NonRolling defaults to not performing service checks on a group.
       // Of course, a Service Check Group does indeed run them.
-      if (upgradePack.getType() == UpgradeType.NONROLLING) {
+      if (upgradePack.getType() == UpgradeType.NON_ROLLING) {
         group.performServiceCheck = false;
       }
 
@@ -273,7 +273,7 @@ public class UpgradeHelper {
           ProcessingComponent pc = null;
           if (upgradePack.getType() == UpgradeType.ROLLING) {
             pc = allTasks.get(service.serviceName).get(component);
-          } else if (upgradePack.getType() == UpgradeType.NONROLLING) {
+          } else if (upgradePack.getType() == UpgradeType.NON_ROLLING) {
             // Construct a processing task on-the-fly
             if (null != functionName) {
               pc = new ProcessingComponent();
@@ -564,5 +564,4 @@ public class UpgradeHelper {
       LOG.debug("Could not get service detail", e);
     }
   }
-
 }

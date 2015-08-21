@@ -20,11 +20,13 @@ package org.apache.ambari.server.controller.internal;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
 import org.apache.ambari.server.AmbariException;
 import org.apache.ambari.server.StaticallyInject;
+import org.apache.ambari.server.checks.AbstractCheckDescriptor;
 import org.apache.ambari.server.checks.UpgradeCheckRegistry;
 import org.apache.ambari.server.controller.AmbariManagementController;
 import org.apache.ambari.server.controller.PrereqCheckRequest;
@@ -47,6 +49,7 @@ import org.apache.ambari.server.state.stack.PrerequisiteCheck;
 import com.google.common.collect.Sets;
 import com.google.inject.Inject;
 import com.google.inject.Provider;
+import org.apache.ambari.server.state.stack.upgrade.UpgradeType;
 
 /**
  * Resource provider for pre-upgrade checks.
@@ -64,6 +67,7 @@ public class PreUpgradeCheckResourceProvider extends ReadOnlyResourceProvider {
   public static final String UPGRADE_CHECK_FAILED_DETAIL_PROPERTY_ID      = PropertyHelper.getPropertyId("UpgradeChecks", "failed_detail");
   public static final String UPGRADE_CHECK_CHECK_TYPE_PROPERTY_ID         = PropertyHelper.getPropertyId("UpgradeChecks", "check_type");
   public static final String UPGRADE_CHECK_CLUSTER_NAME_PROPERTY_ID       = PropertyHelper.getPropertyId("UpgradeChecks", "cluster_name");
+  public static final String UPGRADE_CHECK_UPGRADE_TYPE_PROPERTY_ID       = PropertyHelper.getPropertyId("UpgradeChecks", "upgrade_type");
   public static final String UPGRADE_CHECK_REPOSITORY_VERSION_PROPERTY_ID = PropertyHelper.getPropertyId("UpgradeChecks", "repository_version");
 
   @Inject
@@ -86,6 +90,7 @@ public class PreUpgradeCheckResourceProvider extends ReadOnlyResourceProvider {
       UPGRADE_CHECK_FAILED_DETAIL_PROPERTY_ID,
       UPGRADE_CHECK_CHECK_TYPE_PROPERTY_ID,
       UPGRADE_CHECK_CLUSTER_NAME_PROPERTY_ID,
+      UPGRADE_CHECK_UPGRADE_TYPE_PROPERTY_ID,
       UPGRADE_CHECK_REPOSITORY_VERSION_PROPERTY_ID);
 
 
@@ -119,6 +124,9 @@ public class PreUpgradeCheckResourceProvider extends ReadOnlyResourceProvider {
 
     for (Map<String, Object> propertyMap: propertyMaps) {
       final String clusterName = propertyMap.get(UPGRADE_CHECK_CLUSTER_NAME_PROPERTY_ID).toString();
+      // TODO AMBARI-12698, uncomment once the UI starts passing the property.
+      // final UpgradeType upgradeType = (UpgradeType) propertyMap.get(UPGRADE_CHECK_UPGRADE_TYPE_PROPERTY_ID);
+      final UpgradeType upgradeType = UpgradeType.NON_ROLLING;
       final Cluster cluster;
 
       try {
@@ -129,7 +137,7 @@ public class PreUpgradeCheckResourceProvider extends ReadOnlyResourceProvider {
 
       String stackName = cluster.getCurrentStackVersion().getStackName();
 
-      final PrereqCheckRequest upgradeCheckRequest = new PrereqCheckRequest(clusterName);
+      final PrereqCheckRequest upgradeCheckRequest = new PrereqCheckRequest(clusterName, upgradeType);
       upgradeCheckRequest.setSourceStackId(cluster.getCurrentStackVersion());
 
       if (propertyMap.containsKey(UPGRADE_CHECK_REPOSITORY_VERSION_PROPERTY_ID)) {
@@ -141,7 +149,10 @@ public class PreUpgradeCheckResourceProvider extends ReadOnlyResourceProvider {
         upgradeCheckRequest.setTargetStackId(repositoryVersionEntity.getStackId());
       }
 
-      for (PrerequisiteCheck prerequisiteCheck : checkHelper.performChecks(upgradeCheckRequest, upgradeCheckRegistry.getUpgradeChecks())) {
+      // TODO AMBARI-12698, filter the upgrade checks to run based on the stack and upgrade type, or the upgrade pack.
+      List<AbstractCheckDescriptor> upgradeChecksToRun = upgradeCheckRegistry.getUpgradeChecks();
+
+      for (PrerequisiteCheck prerequisiteCheck : checkHelper.performChecks(upgradeCheckRequest, upgradeChecksToRun)) {
         final Resource resource = new ResourceImpl(Resource.Type.PreUpgradeCheck);
         setResourceProperty(resource, UPGRADE_CHECK_ID_PROPERTY_ID, prerequisiteCheck.getId(), requestedIds);
         setResourceProperty(resource, UPGRADE_CHECK_CHECK_PROPERTY_ID, prerequisiteCheck.getDescription(), requestedIds);
@@ -151,6 +162,7 @@ public class PreUpgradeCheckResourceProvider extends ReadOnlyResourceProvider {
         setResourceProperty(resource, UPGRADE_CHECK_FAILED_DETAIL_PROPERTY_ID,prerequisiteCheck.getFailedDetail(), requestedIds);
         setResourceProperty(resource, UPGRADE_CHECK_CHECK_TYPE_PROPERTY_ID, prerequisiteCheck.getType(), requestedIds);
         setResourceProperty(resource, UPGRADE_CHECK_CLUSTER_NAME_PROPERTY_ID, prerequisiteCheck.getClusterName(), requestedIds);
+        setResourceProperty(resource, UPGRADE_CHECK_UPGRADE_TYPE_PROPERTY_ID, upgradeType, requestedIds);
         if (upgradeCheckRequest.getRepositoryVersion() != null) {
           setResourceProperty(resource, UPGRADE_CHECK_REPOSITORY_VERSION_PROPERTY_ID, upgradeCheckRequest.getRepositoryVersion(), requestedIds);
         }

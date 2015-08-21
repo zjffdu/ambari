@@ -73,7 +73,6 @@ public class RepositoryVersionResourceProvider extends AbstractResourceProvider 
   public static final String REPOSITORY_VERSION_STACK_VERSION_PROPERTY_ID      = PropertyHelper.getPropertyId("RepositoryVersions", "stack_version");
   public static final String REPOSITORY_VERSION_REPOSITORY_VERSION_PROPERTY_ID = PropertyHelper.getPropertyId("RepositoryVersions", "repository_version");
   public static final String REPOSITORY_VERSION_DISPLAY_NAME_PROPERTY_ID       = PropertyHelper.getPropertyId("RepositoryVersions", "display_name");
-  public static final String REPOSITORY_VERSION_UPGRADE_PACK_PROPERTY_ID       = PropertyHelper.getPropertyId("RepositoryVersions", "upgrade_pack");
   public static final String SUBRESOURCE_OPERATING_SYSTEMS_PROPERTY_ID         = new OperatingSystemResourceDefinition().getPluralName();
   public static final String SUBRESOURCE_REPOSITORIES_PROPERTY_ID              = new RepositoryResourceDefinition().getPluralName();
 
@@ -92,7 +91,6 @@ public class RepositoryVersionResourceProvider extends AbstractResourceProvider 
       add(REPOSITORY_VERSION_DISPLAY_NAME_PROPERTY_ID);
       add(REPOSITORY_VERSION_STACK_NAME_PROPERTY_ID);
       add(REPOSITORY_VERSION_STACK_VERSION_PROPERTY_ID);
-      add(REPOSITORY_VERSION_UPGRADE_PACK_PROPERTY_ID);
       add(SUBRESOURCE_OPERATING_SYSTEMS_PROPERTY_ID);
     }
   };
@@ -214,7 +212,6 @@ public class RepositoryVersionResourceProvider extends AbstractResourceProvider 
       setResourceProperty(resource, REPOSITORY_VERSION_STACK_NAME_PROPERTY_ID, entity.getStackName(), requestedIds);
       setResourceProperty(resource, REPOSITORY_VERSION_STACK_VERSION_PROPERTY_ID, entity.getStackVersion(), requestedIds);
       setResourceProperty(resource, REPOSITORY_VERSION_DISPLAY_NAME_PROPERTY_ID, entity.getDisplayName(), requestedIds);
-      setResourceProperty(resource, REPOSITORY_VERSION_UPGRADE_PACK_PROPERTY_ID, entity.getUpgradePackage(), requestedIds);
       setResourceProperty(resource, REPOSITORY_VERSION_REPOSITORY_VERSION_PROPERTY_ID, entity.getVersion(), requestedIds);
 
       resources.add(resource);
@@ -243,22 +240,18 @@ public class RepositoryVersionResourceProvider extends AbstractResourceProvider 
             throw new ObjectNotFoundException("There is no repository version with id " + id);
           }
 
-          if (StringUtils.isNotBlank(ObjectUtils.toString(propertyMap.get(REPOSITORY_VERSION_UPGRADE_PACK_PROPERTY_ID)))) {
-            StackEntity stackEntity = entity.getStack();
-            String stackName = stackEntity.getStackName();
-            String stackVersion = stackEntity.getStackVersion();
+          // Prevent changing repo version if there's already a cluster version that has performed some meaningful action on it.
+          StackEntity stackEntity = entity.getStack();
+          String stackName = stackEntity.getStackName();
+          String stackVersion = stackEntity.getStackVersion();
 
-            final List<ClusterVersionEntity> clusterVersionEntities = clusterVersionDAO.findByStackAndVersion(
-                stackName, stackVersion, entity.getVersion());
+          final List<ClusterVersionEntity> clusterVersionEntities = clusterVersionDAO.findByStackAndVersion(
+              stackName, stackVersion, entity.getVersion());
 
-            if (!clusterVersionEntities.isEmpty()) {
-              final ClusterVersionEntity firstClusterVersion = clusterVersionEntities.get(0);
-              throw new AmbariException("Upgrade pack can't be changed for repository version which is " +
-                firstClusterVersion.getState().name() + " on cluster " + firstClusterVersion.getClusterEntity().getClusterName());
-            }
-
-            final String upgradePackage = propertyMap.get(REPOSITORY_VERSION_UPGRADE_PACK_PROPERTY_ID).toString();
-            entity.setUpgradePackage(upgradePackage);
+          if (!clusterVersionEntities.isEmpty()) {
+            final ClusterVersionEntity firstClusterVersion = clusterVersionEntities.get(0);
+            throw new AmbariException("Upgrade pack can't be changed for repository version which has a state of " +
+              firstClusterVersion.getState().name() + " on cluster " + firstClusterVersion.getClusterEntity().getClusterName());
           }
 
           if (StringUtils.isNotBlank(ObjectUtils.toString(propertyMap.get(SUBRESOURCE_OPERATING_SYSTEMS_PROPERTY_ID)))) {
@@ -430,7 +423,6 @@ public class RepositoryVersionResourceProvider extends AbstractResourceProvider 
       throw new AmbariException("Json structure for operating systems is incorrect", ex);
     }
     entity.setOperatingSystems(operatingSystemsJson);
-    entity.setUpgradePackage(repositoryVersionHelper.getUpgradePackageName(stackName, stackVersion, entity.getVersion()));
     return entity;
   }
 

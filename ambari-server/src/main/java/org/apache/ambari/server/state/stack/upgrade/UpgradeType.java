@@ -26,11 +26,11 @@ public enum UpgradeType {
   /**
    * Services are up the entire time
    */
-  @XmlEnumValue("rolling")
+  @XmlEnumValue("ROLLING")
   ROLLING,
   /**
    * All services are stopped, then started
    */
-  @XmlEnumValue("nonrolling")
-  NONROLLING;
+  @XmlEnumValue("NON_ROLLING")
+  NON_ROLLING;
 }

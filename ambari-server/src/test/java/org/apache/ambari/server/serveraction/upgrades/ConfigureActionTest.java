@@ -633,8 +633,7 @@ public class ConfigureActionTest {
     String urlInfo = "[{'repositories':["
         + "{'Repositories/base_url':'http://foo1','Repositories/repo_name':'HDP','Repositories/repo_id':'HDP-2.2.0'}"
         + "], 'OperatingSystems/os_type':'redhat6'}]";
-    repoVersionDAO.create(stackEntity, HDP_2_2_0_1, String.valueOf(System.currentTimeMillis()),
-        "pack", urlInfo);
+    repoVersionDAO.create(stackEntity, HDP_2_2_0_1, String.valueOf(System.currentTimeMillis()), urlInfo);
 
 
     c.createClusterVersion(HDP_220_STACK, HDP_2_2_0_1, "admin", RepositoryVersionState.INSTALLING);

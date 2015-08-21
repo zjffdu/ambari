@@ -114,14 +114,14 @@ class NameNodeDefault(NameNode):
     print "TODO AMBARI-12698"
     pass
 
-  def prepare_nonrolling_upgrade(self, env):
+  def prepare_non_rolling_upgrade(self, env):
     print "TODO AMBARI-12698"
     pass
 
   def prepare_rolling_upgrade(self, env):
     namenode_upgrade.prepare_rolling_upgrade()
 
-  def finalize_nonrolling_upgrade(self, env):
+  def finalize_non_rolling_upgrade(self, env):
     print "TODO AMBARI-12698"
     pass
 

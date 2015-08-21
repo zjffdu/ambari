@@ -169,7 +169,6 @@ public class UpgradeResourceProviderHDP22Test {
     repoVersionEntity.setDisplayName("For Stack Version 2.2.0");
     repoVersionEntity.setOperatingSystems("");
     repoVersionEntity.setStack(stackEntity);
-    repoVersionEntity.setUpgradePackage("upgrade_test");
     repoVersionEntity.setVersion("2.2.0.0");
     repoVersionDao.create(repoVersionEntity);
 
@@ -177,7 +176,6 @@ public class UpgradeResourceProviderHDP22Test {
     repoVersionEntity.setDisplayName("For Stack Version 2.2.4.2");
     repoVersionEntity.setOperatingSystems("");
     repoVersionEntity.setStack(stackEntity);
-    repoVersionEntity.setUpgradePackage("upgrade_test");
     repoVersionEntity.setVersion("2.2.4.2");
     repoVersionDao.create(repoVersionEntity);
 
@@ -261,6 +259,7 @@ public class UpgradeResourceProviderHDP22Test {
     Map<String, Object> requestProps = new HashMap<String, Object>();
     requestProps.put(UpgradeResourceProvider.UPGRADE_CLUSTER_NAME, "c1");
     requestProps.put(UpgradeResourceProvider.UPGRADE_VERSION, "2.2.4.2");
+    requestProps.put(UpgradeResourceProvider.UPGRADE_PACK, "upgrade_test");
 
     ResourceProvider upgradeResourceProvider = createProvider(amc);
 

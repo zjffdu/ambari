@@ -159,14 +159,19 @@ public class RepositoryVersionHelper {
    * @param stackName stack name
    * @param stackVersion stack version
    * @param repositoryVersion target repository version
+   * @param upgradeType if not {@code null} null, will only return upgrade packs whose type matches.
    * @return upgrade pack name
    * @throws AmbariException if no upgrade packs suit the requirements
    */
-  public String getUpgradePackageName(String stackName, String stackVersion, String repositoryVersion) throws AmbariException {
+  public String getUpgradePackageName(String stackName, String stackVersion, String repositoryVersion, UpgradeType upgradeType) throws AmbariException {
     final Map<String, UpgradePack> upgradePacks = ambariMetaInfo.getUpgradePacks(stackName, stackVersion);
-    for (Entry<String, UpgradePack> upgradePackEntry : upgradePacks.entrySet()) {
-      final UpgradePack upgradePack = upgradePackEntry.getValue();
-      final String upgradePackName = upgradePackEntry.getKey();
+    for (UpgradePack upgradePack : upgradePacks.values()) {
+      final String upgradePackName = upgradePack.getName();
+
+      if (null != upgradeType && upgradePack.getType() != upgradeType) {
+        continue;
+      }
+
       // check that upgrade pack has <target> node
       if (StringUtils.isBlank(upgradePack.getTarget())) {
         LOG.error("Upgrade pack " + upgradePackName + " is corrupted, it should contain <target> node");
@@ -183,23 +188,7 @@ public class RepositoryVersionHelper {
         return upgradePackName;
       }
     }
-    throw new AmbariException("There were no suitable upgrade packs for stack " + stackName + " " + stackVersion);
-  }
-
-  /**
-   * Scans the given stack for upgrade packages which can be applied to update the cluster to given repository version.
-   * Returns NONE if there were no suitable packages.
-   *
-   * @param stackName stack name
-   * @param stackVersion stack version
-   * @param repositoryVersion target repository version
-   * @return upgrade pack name or NONE
-   */
-  public String getUpgradePackageNameSafe(String stackName, String stackVersion, String repositoryVersion) {
-    try {
-      return getUpgradePackageName(stackName, stackVersion, repositoryVersion);
-    } catch (AmbariException ex) {
-      return "NONE";
-    }
+    throw new AmbariException("There were no suitable upgrade packs for stack " + stackName + " " + stackVersion +
+        ((null != upgradeType) ? " and upgrade type " + upgradeType : ""));
   }
 }

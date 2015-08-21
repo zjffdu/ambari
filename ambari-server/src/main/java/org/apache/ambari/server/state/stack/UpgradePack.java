@@ -45,6 +45,11 @@ import org.apache.ambari.server.state.stack.upgrade.UpgradeType;
 @XmlAccessorType(XmlAccessType.FIELD)
 public class UpgradePack {
 
+  /**
+   * Name of the file without the extension, such as upgrade-2.2
+   */
+  private String name;
+
   @XmlElement(name="target")
   private String target;
 
@@ -60,7 +65,7 @@ public class UpgradePack {
 
   /**
    * In the case of a rolling upgrade, will specify processing logic for a particular component.
-   * Nonrolling upgrades are simpler so the "processing" is embedded into the  group's "type", which is a function like
+   * NonRolling upgrades are simpler so the "processing" is embedded into the  group's "type", which is a function like
    * "stop" or "start".
    */
   @XmlElementWrapper(name="processing")
@@ -74,6 +79,13 @@ public class UpgradePack {
   @XmlTransient
   private boolean m_resolvedGroups = false;
 
+  public String getName() {
+    return name;
+  }
+
+  public void setName(String name) {
+    this.name = name;
+  }
   /**
    * @return the target version for the upgrade pack
    */
@@ -89,7 +101,7 @@ public class UpgradePack {
   }
 
   /**
-   * @return the type of upgrade, e.g., "rolling" or "nonrolling"
+   * @return the type of upgrade, e.g., "ROLLING" or "NON_ROLLING"
    */
   public UpgradeType getType() {
     return type;
@@ -108,7 +120,7 @@ public class UpgradePack {
     } else {
       if (type == UpgradeType.ROLLING) {
         list = getDowngradeGroupsForRolling();
-      } else if (type == UpgradeType.NONROLLING) {
+      } else if (type == UpgradeType.NON_ROLLING) {
         list = getDowngradeGroupsForNonrolling();
       }
     }
