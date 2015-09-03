@@ -457,10 +457,9 @@ public class UpgradeResourceProvider extends AbstractControllerResourceProvider 
      */
     String preferredUpgradePackName = (String) requestMap.get(UPGRADE_PACK);
 
-    // The type will determine which Upgrade Pack to use.
-    // TODO AMBARI-12698, uncomment once the UI starts passing the upgrade type.
-    //final UpgradeType upgradeType = (UpgradeType) requestMap.get(UPGRADE_TYPE);
-    final UpgradeType upgradeType = UpgradeType.ROLLING;
+    // Default to ROLLING upgrade, but attempt to read from properties.
+    final UpgradeType upgradeType = requestMap.containsKey(UPGRADE_TYPE) ?
+        UpgradeType.valueOf((String) requestMap.get(UPGRADE_TYPE)) : UpgradeType.ROLLING;
 
     if (null == clusterName) {
       throw new AmbariException(String.format("%s is required", UPGRADE_CLUSTER_NAME));
