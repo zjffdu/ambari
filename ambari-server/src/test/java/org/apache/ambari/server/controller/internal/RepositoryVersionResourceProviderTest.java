@@ -46,8 +46,10 @@ import org.apache.ambari.server.orm.entities.ClusterEntity;
 import org.apache.ambari.server.orm.entities.ClusterVersionEntity;
 import org.apache.ambari.server.orm.entities.RepositoryVersionEntity;
 import org.apache.ambari.server.orm.entities.StackEntity;
+import org.apache.ambari.server.state.Clusters;
 import org.apache.ambari.server.state.OperatingSystemInfo;
 import org.apache.ambari.server.state.RepositoryVersionState;
+import org.apache.ambari.server.state.StackId;
 import org.apache.ambari.server.state.StackInfo;
 import org.apache.ambari.server.state.stack.UpgradePack;
 import org.junit.After;
@@ -100,6 +102,8 @@ public class RepositoryVersionResourceProviderTest {
   @Before
   public void before() throws Exception {
     final Set<String> validVersions = Sets.newHashSet("1.1", "1.1-17", "1.1.1.1", "1.1.343432.2", "1.1.343432.2-234234324");
+    final Set<StackInfo> stacks = new HashSet<StackInfo>();
+
     final AmbariMetaInfo ambariMetaInfo = Mockito.mock(AmbariMetaInfo.class);
     clusterVersionDAO = Mockito.mock(ClusterVersionDAO.class);
 
@@ -144,6 +148,9 @@ public class RepositoryVersionResourceProviderTest {
         return map;
       }
     };
+    stackInfo.setName("HDP");
+    stackInfo.setVersion("1.1");
+    stacks.add(stackInfo);
     Mockito.when(ambariMetaInfo.getStack(Mockito.anyString(), Mockito.anyString())).thenAnswer(new Answer<StackInfo>() {
 
       @Override
@@ -158,7 +165,7 @@ public class RepositoryVersionResourceProviderTest {
       }
 
     });
-
+    Mockito.when(ambariMetaInfo.getStacks()).thenReturn(stacks);
     Mockito.when(ambariMetaInfo.getUpgradePacks(Mockito.anyString(), Mockito.anyString())).thenAnswer(new Answer<Map<String, UpgradePack>>() {
 
       @Override
@@ -211,6 +218,9 @@ public class RepositoryVersionResourceProviderTest {
     stackEntity.setStackName("HDP");
     stackEntity.setStackVersion("1.1");
     stackDAO.create(stackEntity);
+
+    Clusters clusters = injector.getInstance(Clusters.class);
+    clusters.addCluster("c1", new StackId("HDP", "1.1"));
   }
 
   @Test
@@ -387,8 +397,8 @@ public class RepositoryVersionResourceProviderTest {
     final Predicate predicateStackName = new PredicateBuilder().property(RepositoryVersionResourceProvider.REPOSITORY_VERSION_STACK_NAME_PROPERTY_ID).equals("HDP").toPredicate();
     final Predicate predicateStackVersion = new PredicateBuilder().property(RepositoryVersionResourceProvider.REPOSITORY_VERSION_STACK_VERSION_PROPERTY_ID).equals("1.1").toPredicate();
     final Request getRequest = PropertyHelper.getReadRequest(
-        RepositoryVersionResourceProvider.REPOSITORY_VERSION_DISPLAY_NAME_PROPERTY_ID,
-        RepositoryVersionResourceProvider.SUBRESOURCE_OPERATING_SYSTEMS_PROPERTY_ID);
+      RepositoryVersionResourceProvider.REPOSITORY_VERSION_DISPLAY_NAME_PROPERTY_ID,
+      RepositoryVersionResourceProvider.SUBRESOURCE_OPERATING_SYSTEMS_PROPERTY_ID);
     Assert.assertEquals(0, provider.getResources(getRequest, new AndPredicate(predicateStackName, predicateStackVersion)).size());
 
     final Request createRequest = PropertyHelper.getCreateRequest(propertySet, null);
@@ -409,12 +419,12 @@ public class RepositoryVersionResourceProviderTest {
 
     // Now, insert a cluster version whose state is INSTALL_FAILED, so the operation will not be permitted.
     Mockito.when(clusterVersionDAO.findByStackAndVersion(Mockito.anyString(), Mockito.anyString(), Mockito.anyString())).thenAnswer(
-        new Answer<List<ClusterVersionEntity>>() {
-          @Override
-          public List<ClusterVersionEntity> answer(InvocationOnMock invocation) throws Throwable {
-            return getInstallFailedClusterVersions();
-          }
-        });
+      new Answer<List<ClusterVersionEntity>>() {
+        @Override
+        public List<ClusterVersionEntity> answer(InvocationOnMock invocation) throws Throwable {
+          return getInstallFailedClusterVersions();
+        }
+      });
 
     try {
       provider.updateResources(updateRequest, new AndPredicate(predicateStackName, predicateStackVersion));

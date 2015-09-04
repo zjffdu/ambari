@@ -22,7 +22,6 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.regex.Pattern;
 
 import org.apache.ambari.server.AmbariException;
 import org.apache.ambari.server.api.services.AmbariMetaInfo;
@@ -177,14 +176,7 @@ public class RepositoryVersionHelper {
         LOG.error("Upgrade pack " + upgradePackName + " is corrupted, it should contain <target> node");
         continue;
       }
-
-      // check that upgrade pack can be applied to selected stack
-      // converting 2.2.*.* -> 2\.2(\.\d+)?(\.\d+)?(-\d+)?
-      String regexPattern = upgradePack.getTarget();
-      regexPattern = regexPattern.replaceAll("\\.", "\\\\."); // . -> \.
-      regexPattern = regexPattern.replaceAll("\\\\\\.\\*", "(\\\\\\.\\\\d+)?"); // \.* -> (\.\d+)?
-      regexPattern = regexPattern.concat("(-\\d+)?");
-      if (Pattern.matches(regexPattern, repositoryVersion)) {
+      if (upgradePack.canBeApplied(repositoryVersion)) {
         return upgradePackName;
       }
     }

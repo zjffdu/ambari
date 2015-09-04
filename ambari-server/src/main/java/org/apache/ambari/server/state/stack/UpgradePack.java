@@ -22,6 +22,7 @@ import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Pattern;
 
 import javax.xml.bind.annotation.XmlAccessType;
 import javax.xml.bind.annotation.XmlAccessorType;
@@ -133,6 +134,16 @@ public class UpgradePack {
     }
 
     return checked;
+  }
+
+  public boolean canBeApplied(String targetVersion){
+    // check that upgrade pack can be applied to selected stack
+    // converting 2.2.*.* -> 2\.2(\.\d+)?(\.\d+)?(-\d+)?
+
+    String regexPattern = getTarget().replaceAll("\\.", "\\\\."); // . -> \.
+    regexPattern = regexPattern.replaceAll("\\\\\\.\\*", "(\\\\\\.\\\\d+)?"); // \.* -> (\.\d+)?
+    regexPattern = regexPattern.concat("(-\\d+)?");
+    return Pattern.matches(regexPattern, targetVersion);
   }
 
   /**
