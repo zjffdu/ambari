@@ -83,7 +83,7 @@ public class Grouping {
      * E.g., preupgrade, restart hosts(0), ..., restart hosts(n-1), postupgrade
      * @param hostsType the order collection of hosts, which may have a master and secondary
      * @param service the service name
-     * @param pc the ProcessingComponent derived from the upgrade pack.
+     * @param pc the AffectedComponent derived from the upgrade pack.
      */
     @Override
     public void add(UpgradeContext ctx, HostsType hostsType, String service,

@@ -47,6 +47,7 @@ import org.apache.ambari.server.stack.HostsType;
 import org.apache.ambari.server.stack.MasterHostResolver;
 import org.apache.ambari.server.state.stack.UpgradePack;
 import org.apache.ambari.server.state.stack.UpgradePack.ProcessingComponent;
+import org.apache.ambari.server.state.stack.upgrade.ConfigureTask;
 import org.apache.ambari.server.state.stack.upgrade.Direction;
 import org.apache.ambari.server.state.stack.upgrade.Grouping;
 import org.apache.ambari.server.state.stack.upgrade.ManualTask;
@@ -199,7 +200,7 @@ public class UpgradeHelper {
 
     // Note, only a Rolling Upgrade uses processing tasks.
     Map<String, Map<String, ProcessingComponent>> allTasks = upgradePack.getTasks();
-    List<UpgradeGroupHolder> groups = new ArrayList<UpgradeGroupHolder>();
+    List<UpgradeGroupHolder> groups = new ArrayList<>();
 
     for (Grouping group : upgradePack.getGroups(context.getDirection())) {
 
@@ -227,7 +228,7 @@ public class UpgradeHelper {
       // Rolling Downgrade must reverse the order of services.
       if (upgradePack.getType() == UpgradeType.ROLLING) {
         if (context.getDirection().isDowngrade() && !services.isEmpty()) {
-          List<UpgradePack.OrderService> reverse = new ArrayList<UpgradePack.OrderService>(services);
+          List<UpgradePack.OrderService> reverse = new ArrayList<>(services);
           Collections.reverse(reverse);
           services = reverse;
         }
@@ -235,7 +236,7 @@ public class UpgradeHelper {
 
       // !!! cluster and service checks are empty here
       for (UpgradePack.OrderService service : services) {
-      
+
         if (upgradePack.getType() == UpgradeType.ROLLING && !allTasks.containsKey(service.serviceName)) {
           continue;
         }
@@ -278,7 +279,7 @@ public class UpgradeHelper {
             if (null != functionName) {
               pc = new ProcessingComponent();
               pc.name = component;
-              pc.tasks = new ArrayList<Task>();
+              pc.tasks = new ArrayList<>();
 
               if (functionName == Type.START) {
                 pc.tasks.add(new StartTask());
@@ -302,7 +303,7 @@ public class UpgradeHelper {
             // !!! revisit if needed
             if (!hostsType.hosts.isEmpty() && hostsType.master != null && hostsType.secondary != null) {
               // The order is important, first do the standby, then the active namenode.
-              LinkedHashSet<String> order = new LinkedHashSet<String>();
+              LinkedHashSet<String> order = new LinkedHashSet<>();
 
               order.add(hostsType.secondary);
               order.add(hostsType.master);
@@ -398,7 +399,7 @@ public class UpgradeHelper {
 
     String result = source;
 
-    List<String> tokens = new ArrayList<String>(5);
+    List<String> tokens = new ArrayList<>(5);
     Matcher matcher = PLACEHOLDER_REGEX.matcher(source);
     while (matcher.find()) {
       tokens.add(matcher.group(1));
@@ -494,7 +495,7 @@ public class UpgradeHelper {
     /**
      * List of stages for the group
      */
-    public List<StageWrapper> items = new ArrayList<StageWrapper>();
+    public List<StageWrapper> items = new ArrayList<>();
   }
 
   /**

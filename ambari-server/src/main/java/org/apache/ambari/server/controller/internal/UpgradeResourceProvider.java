@@ -85,6 +85,7 @@ import org.apache.ambari.server.state.StackInfo;
 import org.apache.ambari.server.state.UpgradeContext;
 import org.apache.ambari.server.state.UpgradeHelper;
 import org.apache.ambari.server.state.UpgradeHelper.UpgradeGroupHolder;
+import org.apache.ambari.server.state.stack.ConfigUpgradePack;
 import org.apache.ambari.server.state.stack.UpgradePack;
 import org.apache.ambari.server.state.stack.upgrade.ConfigureTask;
 import org.apache.ambari.server.state.stack.upgrade.Direction;
@@ -488,10 +489,10 @@ public class UpgradeResourceProvider extends AbstractControllerResourceProvider 
     }
 
     Map<String, UpgradePack> packs = s_metaProvider.get().getUpgradePacks(stack.getStackName(),
-        stack.getStackVersion());
+            stack.getStackVersion());
 
     UpgradePack pack = null;
-    if (!preferredUpgradePackName.isEmpty() && packs.containsKey(preferredUpgradePackName)) {
+    if (preferredUpgradePackName != null && !preferredUpgradePackName.isEmpty() && packs.containsKey(preferredUpgradePackName)) {
       pack = packs.get(preferredUpgradePackName);
     }
 
@@ -617,6 +618,11 @@ public class UpgradeResourceProvider extends AbstractControllerResourceProvider 
     // names are read and set on the command for filling in later
     processConfigurations(targetStackId.getStackName(), cluster, version, direction, pack);
 
+    // TODO: for cross-stack upgrade, merge a new config upgrade pack from all
+    // target stacks involved into upgrade and pass it into method
+    ConfigUpgradePack configUpgradePack = s_metaProvider.get().getConfigUpgradePack(
+            targetStackId.getStackName(), targetStackId.getStackVersion());
+
     for (UpgradeGroupHolder group : groups) {
       UpgradeGroupEntity groupEntity = new UpgradeGroupEntity();
       groupEntity.setName(group.name);
@@ -642,7 +648,7 @@ public class UpgradeResourceProvider extends AbstractControllerResourceProvider 
               injectVariables(configHelper, cluster, itemEntity);
 
               makeServerSideStage(ctx, req, itemEntity, (ServerSideActionTask) task, skippable,
-                  allowRetry);
+                  allowRetry, configUpgradePack);
             }
           }
         } else {
@@ -667,7 +673,7 @@ public class UpgradeResourceProvider extends AbstractControllerResourceProvider 
     entity.setFromVersion(cluster.getCurrentClusterVersion().getRepositoryVersion().getVersion());
     entity.setToVersion(version);
     entity.setUpgradeGroups(groupEntities);
-    entity.setClusterId(Long.valueOf(cluster.getClusterId()));
+    entity.setClusterId(cluster.getClusterId());
     entity.setDirection(direction);
     entity.setUpgradePackage(pack.getName());
     entity.setUpgradeType(pack.getType());
@@ -1132,8 +1138,22 @@ public class UpgradeResourceProvider extends AbstractControllerResourceProvider 
     request.addStages(Collections.singletonList(stage));
   }
 
+  /**
+   * Creates a stage consisting of server side actions
+   * @param context upgrade context
+   * @param request upgrade request
+   * @param entity a single of upgrade
+   * @param task server-side task (if any)
+   * @param skippable if user can skip stage on failure
+   * @param allowRetry if user can retry running stage on failure
+   * @param configUpgradePack a runtime-generated config upgrade pack that
+   * contains all config change definitions from all stacks involved into
+   * upgrade
+   * @throws AmbariException
+   */
   private void makeServerSideStage(UpgradeContext context, RequestStageContainer request,
-      UpgradeItemEntity entity, ServerSideActionTask task, boolean skippable, boolean allowRetry)
+      UpgradeItemEntity entity, ServerSideActionTask task, boolean skippable, boolean allowRetry,
+      ConfigUpgradePack configUpgradePack)
           throws AmbariException {
 
     Cluster cluster = context.getCluster();
@@ -1166,7 +1186,8 @@ public class UpgradeResourceProvider extends AbstractControllerResourceProvider 
       }
       case CONFIGURE: {
         ConfigureTask ct = (ConfigureTask) task;
-        Map<String, String> configurationChanges = ct.getConfigurationChanges(cluster);
+        Map<String, String> configurationChanges =
+                ct.getConfigurationChanges(cluster, configUpgradePack);
 
         // add all configuration changes to the command params
         commandParams.putAll(configurationChanges);
@@ -1219,13 +1240,13 @@ public class UpgradeResourceProvider extends AbstractControllerResourceProvider 
     entity.setStageId(Long.valueOf(stageId));
 
     stage.addServerActionCommand(task.getImplementationClass(),
-        getManagementController().getAuthName(),
-        Role.AMBARI_SERVER_ACTION,
-        RoleCommand.EXECUTE,
-        cluster.getClusterName(),
-        new ServiceComponentHostServerActionEvent(null,
-            System.currentTimeMillis()),
-        commandParams, itemDetail, null, Integer.valueOf(1200), allowRetry);
+            getManagementController().getAuthName(),
+            Role.AMBARI_SERVER_ACTION,
+            RoleCommand.EXECUTE,
+            cluster.getClusterName(),
+            new ServiceComponentHostServerActionEvent(null,
+                    System.currentTimeMillis()),
+            commandParams, itemDetail, null, Integer.valueOf(1200), allowRetry);
 
     request.addStages(Collections.singletonList(stage));
   }

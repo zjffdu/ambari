@@ -37,7 +37,7 @@ public abstract class StageWrapperBuilder {
    * @param hostsType   the hosts, along with their type
    * @param service     the service name
    * @param clientOnly  whether the service is client only, no service checks
-   * @param pc          the ProcessingComponent derived from the upgrade pack
+   * @param pc          the AffectedComponent derived from the upgrade pack
    */
   public abstract void add(UpgradeContext ctx, HostsType hostsType, String service,
       boolean clientOnly, ProcessingComponent pc);
