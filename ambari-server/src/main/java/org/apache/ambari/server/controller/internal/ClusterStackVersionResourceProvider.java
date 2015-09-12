@@ -654,9 +654,9 @@ public class ClusterStackVersionResourceProvider extends AbstractControllerResou
         throw new SystemException(detailedOutput);
       }
     } catch (AmbariException e) {
-      throw new SystemException("Can not perform request", e);
+      throw new SystemException("Cannot perform request", e);
     } catch (InterruptedException e) {
-      throw new SystemException("Can not perform request", e);
+      throw new SystemException("Cannot perform request", e);
     }
   }
 

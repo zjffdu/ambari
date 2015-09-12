@@ -206,6 +206,7 @@ public class UpgradeCatalog212Test {
     // Repository Version
     RepositoryVersionEntity repositoryVersionEntity = createNiceMock(RepositoryVersionEntity.class);
     expect(repositoryVersionDAO.findByDisplayName(stackAndBuild)).andReturn(null);
+    expect(repositoryVersionDAO.findMaxId("id")).andReturn(0L);
     expect(repositoryVersionDAO.findAll()).andReturn(Collections.<RepositoryVersionEntity>emptyList());
     expect(repositoryVersionDAO.create(anyObject(StackEntity.class), anyObject(String.class), anyObject(String.class), anyObject(String.class))).andReturn(repositoryVersionEntity);
     expect(repositoryVersionEntity.getId()).andReturn(1L);
@@ -219,6 +220,7 @@ public class UpgradeCatalog212Test {
     expect(clusterVersionEntity.getRepositoryVersion()).andReturn(repositoryVersionEntity);
 
     expect(clusterVersionDAO.findByClusterAndStackAndVersion(anyObject(String.class), anyObject(StackId.class), anyObject(String.class))).andReturn(null);
+    expect(clusterVersionDAO.findMaxId("id")).andReturn(0L);
     expect(clusterVersionDAO.findAll()).andReturn(Collections.<ClusterVersionEntity>emptyList());
     expect(clusterVersionDAO.create(anyObject(ClusterEntity.class), anyObject(RepositoryVersionEntity.class), anyObject(RepositoryVersionState.class), anyLong(), anyLong(), anyObject(String.class))).andReturn(clusterVersionEntity);
     replay(clusterVersionDAO, clusterVersionEntity);
@@ -238,6 +240,7 @@ public class UpgradeCatalog212Test {
     expect(clusterEntity.getHostEntities()).andReturn(hostEntities);
 
     expect(hostVersionDAO.findByClusterStackVersionAndHost(anyObject(String.class), anyObject(StackId.class), anyObject(String.class), anyObject(String.class))).andReturn(null);
+    expect(hostVersionDAO.findMaxId("id")).andReturn(0L);
     expect(hostVersionDAO.findAll()).andReturn(Collections.<HostVersionEntity>emptyList());
 
     replay(clusterEntity, clusterDAO, hostVersionDAO, hostEntity1, hostEntity2);

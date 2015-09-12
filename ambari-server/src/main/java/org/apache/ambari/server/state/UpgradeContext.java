@@ -42,6 +42,14 @@ public class UpgradeContext {
   private StackId m_originalStackId;
 
   /**
+   * The stack currently used to start/restart services during an upgrade.This is the same
+   * During a {@link UpgradeType#ROLLING} upgrade, this is always the {@link this.m_targetStackId},
+   * During a {@link UpgradeType#NON_ROLLING} upgrade, this is initially the {@link this.m_sourceStackId} while
+   * stopping services, and then changes to the {@link this.m_targetStackId} when starting services.
+   */
+  private StackId m_effectiveStackId;
+
+  /**
    * The target upgrade stack before the upgrade started. This is the same
    * regardless of whether the current direction is {@link Direction#UPGRADE} or
    * {@link Direction#DOWNGRADE}.
@@ -84,6 +92,19 @@ public class UpgradeContext {
       Direction direction, UpgradeType type) {
     m_version = version;
     m_originalStackId = sourceStackId;
+
+    switch (type) {
+      case ROLLING:
+        m_effectiveStackId = targetStackId;
+        break;
+      case NON_ROLLING:
+        m_effectiveStackId = sourceStackId;
+        break;
+      default:
+        m_effectiveStackId = targetStackId;
+        break;
+    }
+
     m_targetStackId = targetStackId;
     m_direction = direction;
     m_resolver = resolver;
@@ -160,6 +181,21 @@ public class UpgradeContext {
   public void setOriginalStackId(StackId originalStackId) {
     m_originalStackId = originalStackId;
   }
+
+  /**
+   * @return the effectiveStackId that is currently in use.
+   */
+  public StackId getEffectiveStackId() {
+    return m_effectiveStackId;
+  }
+
+  /**
+   * @param effectiveStackId the effectiveStackId to set
+   */
+  public void setEffectiveStackId(StackId effectiveStackId) {
+    m_effectiveStackId = effectiveStackId;
+  }
+
 
   /**
    * @return the targetStackId

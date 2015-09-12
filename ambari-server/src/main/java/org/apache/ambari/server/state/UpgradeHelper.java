@@ -207,6 +207,7 @@ public class UpgradeHelper {
       UpgradeGroupHolder groupHolder = new UpgradeGroupHolder();
       groupHolder.name = group.name;
       groupHolder.title = group.title;
+      groupHolder.groupClass = group.getClass();
       groupHolder.skippable = group.skippable;
       groupHolder.allowRetry = group.allowRetry;
 
@@ -480,6 +481,9 @@ public class UpgradeHelper {
      * The title
      */
     public String title;
+
+
+    public Class<? extends Grouping> groupClass;
 
     /**
      * Indicate whether retry is allowed for the stages in this group.

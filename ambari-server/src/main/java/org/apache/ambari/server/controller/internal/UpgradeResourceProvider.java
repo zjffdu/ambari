@@ -95,6 +95,7 @@ import org.apache.ambari.server.state.stack.upgrade.ServerSideActionTask;
 import org.apache.ambari.server.state.stack.upgrade.StageWrapper;
 import org.apache.ambari.server.state.stack.upgrade.Task;
 import org.apache.ambari.server.state.stack.upgrade.TaskWrapper;
+import org.apache.ambari.server.state.stack.upgrade.UpdateStackGrouping;
 import org.apache.ambari.server.state.stack.upgrade.UpgradeType;
 import org.apache.ambari.server.state.svccomphost.ServiceComponentHostServerActionEvent;
 import org.apache.commons.lang.StringUtils;
@@ -613,9 +614,21 @@ public class UpgradeResourceProvider extends AbstractControllerResourceProvider 
     List<UpgradeGroupEntity> groupEntities = new ArrayList<UpgradeGroupEntity>();
     RequestStageContainer req = createRequest(direction, version);
 
-    // desired configs must be set before creating stages because the config tag
-    // names are read and set on the command for filling in later
-    processConfigurations(targetStackId.getStackName(), cluster, version, direction, pack);
+    /**
+    During a Rolling Upgrade, change the desired Stack Id if jumping across
+    major stack versions (e.g., HDP 2.2 -> 2.3), and then set config changes
+    so they are applied on the newer stack.
+
+    During a {@link UpgradeType.NON_ROLLING} upgrade, the stack is applied during the middle of the upgrade (after
+    stopping all services), and the configs are applied immediately before starting the services.
+    The Upgrade Pack is responsible for calling {@link org.apache.ambari.server.serveraction.upgrades.UpdateDesiredStackAction}
+    at the appropriate moment during the orchestration.
+    **/
+    if (pack.getType() == UpgradeType.ROLLING) {
+      // Desired configs must be set before creating stages because the config tag
+      // names are read and set on the command for filling in later
+      applyStackAndProcessConfigurations(targetStackId.getStackName(), cluster, version, direction, pack);
+    }
 
     // TODO: for cross-stack upgrade, merge a new config upgrade pack from all
     // target stacks involved into upgrade and pass it into method
@@ -643,6 +656,12 @@ public class UpgradeResourceProvider extends AbstractControllerResourceProvider 
               itemEntity.setTasks(wrapper.getTasksJson());
               itemEntity.setHosts(wrapper.getHostsJson());
               itemEntities.add(itemEntity);
+              
+              // At this point, need to change the effective Stack Id so that subsequent tasks run on the newer value.
+              // TODO AMBARI-12698, check if this works during a Stop-the-World Downgrade.
+              if (UpdateStackGrouping.class.equals(group.groupClass)) {
+                ctx.setEffectiveStackId(ctx.getTargetStackId());
+              }
 
               injectVariables(configHelper, cluster, itemEntity);
 
@@ -722,7 +741,7 @@ public class UpgradeResourceProvider extends AbstractControllerResourceProvider 
    *          which services are effected.
    * @throws AmbariException
    */
-  void processConfigurations(String stackName, Cluster cluster, String version, Direction direction, UpgradePack upgradePack)
+  void applyStackAndProcessConfigurations(String stackName, Cluster cluster, String version, Direction direction, UpgradePack upgradePack)
       throws AmbariException {
     RepositoryVersionEntity targetRve = s_repoVersionDAO.findByStackNameAndVersion(stackName, version);
     if (null == targetRve) {
@@ -823,7 +842,7 @@ public class UpgradeResourceProvider extends AbstractControllerResourceProvider 
           continue;
         }
 
-        // NPE sanity, althought shouldn't even happen since we are iterating
+        // NPE sanity, although shouldn't even happen since we are iterating
         // over the desired configs to start with
         Config currentClusterConfig = cluster.getDesiredConfigByType(configurationType);
         if (null == currentClusterConfig) {
@@ -953,7 +972,7 @@ public class UpgradeResourceProvider extends AbstractControllerResourceProvider 
     // service, it is necessary to set the
     // service_package_folder and hooks_folder params.
     AmbariMetaInfo ambariMetaInfo = s_metaProvider.get();
-    StackId stackId = cluster.getDesiredStackVersion();
+    StackId stackId = context.getEffectiveStackId();
 
     StackInfo stackInfo = ambariMetaInfo.getStack(stackId.getStackName(),
         stackId.getStackVersion());
@@ -974,7 +993,7 @@ public class UpgradeResourceProvider extends AbstractControllerResourceProvider 
     actionContext.setTimeout(Short.valueOf(s_configuration.getDefaultAgentTaskTimeout(false)));
 
     ExecuteCommandJson jsons = s_commandExecutionHelper.get().getCommandJson(actionContext,
-        cluster);
+        cluster, context.getEffectiveStackId());
 
     Stage stage = s_stageFactory.get().createNew(request.getId().longValue(), "/tmp/ambari",
         cluster.getClusterName(), cluster.getClusterId(), entity.getText(),
@@ -1061,7 +1080,7 @@ public class UpgradeResourceProvider extends AbstractControllerResourceProvider 
     actionContext.setIgnoreMaintenance(true);
 
     ExecuteCommandJson jsons = s_commandExecutionHelper.get().getCommandJson(actionContext,
-        cluster);
+        cluster, context.getEffectiveStackId());
 
     Stage stage = s_stageFactory.get().createNew(request.getId().longValue(), "/tmp/ambari",
         cluster.getClusterName(), cluster.getClusterId(), entity.getText(),
@@ -1113,7 +1132,7 @@ public class UpgradeResourceProvider extends AbstractControllerResourceProvider 
     actionContext.setIgnoreMaintenance(true);
 
     ExecuteCommandJson jsons = s_commandExecutionHelper.get().getCommandJson(actionContext,
-        cluster);
+        cluster, context.getEffectiveStackId());
 
     Stage stage = s_stageFactory.get().createNew(request.getId().longValue(), "/tmp/ambari",
         cluster.getClusterName(), cluster.getClusterId(), entity.getText(),
@@ -1222,7 +1241,7 @@ public class UpgradeResourceProvider extends AbstractControllerResourceProvider 
 
 
     ExecuteCommandJson jsons = s_commandExecutionHelper.get().getCommandJson(actionContext,
-        cluster);
+        cluster, context.getEffectiveStackId());
 
     Stage stage = s_stageFactory.get().createNew(request.getId().longValue(), "/tmp/ambari",
         cluster.getClusterName(), cluster.getClusterId(), stageText, jsons.getClusterHostInfo(),

@@ -17,30 +17,20 @@
  */
 package org.apache.ambari.server.state.stack.upgrade;
 
+
 import javax.xml.bind.annotation.XmlAccessType;
 import javax.xml.bind.annotation.XmlAccessorType;
 import javax.xml.bind.annotation.XmlRootElement;
-import javax.xml.bind.annotation.XmlTransient;
 import javax.xml.bind.annotation.XmlType;
 
+
 /**
- * Identifies that an upgrade step that requires confirmation before continuing.
+ * Used to represent operations that update the Stack.
+ * This is primarily needed during a {@link UpgradeType#NON_ROLLING} upgrade.
  */
 @XmlRootElement
 @XmlAccessorType(XmlAccessType.FIELD)
-@XmlType(name="server_action")
-public class ServerActionTask extends ServerSideActionTask {
+@XmlType(name="update-stack")
+public class UpdateStackGrouping extends ClusterGrouping {
 
-  @XmlTransient
-  private Type type = Type.SERVER_ACTION;
-
-  @Override
-  public Type getType() {
-    return type;
-  }
-
-  @Override
-  public StageWrapper.Type getStageWrapperType() {
-    return StageWrapper.Type.SERVER_SIDE_ACTION;
-  }
 }

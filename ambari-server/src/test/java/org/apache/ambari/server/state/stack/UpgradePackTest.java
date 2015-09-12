@@ -43,6 +43,7 @@ import org.apache.ambari.server.state.stack.upgrade.RestartTask;
 import org.apache.ambari.server.state.stack.upgrade.StopGrouping;
 import org.apache.ambari.server.state.stack.upgrade.Task;
 import org.apache.ambari.server.state.stack.upgrade.TransferOperation;
+import org.apache.ambari.server.state.stack.upgrade.UpdateStackGrouping;
 import org.apache.ambari.server.state.stack.upgrade.UpgradeType;
 import org.junit.After;
 import org.junit.Before;
@@ -245,6 +246,7 @@ public class UpgradePackTest {
         "Stop High-Level Daemons",
         "Backups",
         "Stop Low-Level Daemons",
+        "UPDATE_DESIRED_STACK_ID",
         "ALL_HOST_OPS",
         "ZOOKEEPER",
         "HDFS",
@@ -302,10 +304,11 @@ public class UpgradePackTest {
     assertTrue(upgrade.getType() == UpgradeType.NON_ROLLING);
 
     List<Grouping> groups = upgrade.getGroups(Direction.UPGRADE);
-    assertEquals(9, groups.size());
+    assertEquals(10, groups.size());
 
     Grouping group = null;
     ClusterGrouping clusterGroup = null;
+    UpdateStackGrouping updateStackGroup = null;
     StopGrouping stopGroup = null;
     RestartGrouping restartGroup = null;
 
@@ -330,26 +333,31 @@ public class UpgradePackTest {
     assertEquals("Stop Daemons for Low-Level Services", stopGroup.title);
 
     group = groups.get(4);
+    assertEquals(UpdateStackGrouping.class, group.getClass());
+    updateStackGroup = (UpdateStackGrouping) group;
+    assertEquals("Update Desired Stack Id", updateStackGroup.title);
+
+    group = groups.get(5);
     assertEquals(ClusterGrouping.class, group.getClass());
     clusterGroup = (ClusterGrouping) group;
     assertEquals("Set Version On All Hosts", clusterGroup.title);
 
-    group = groups.get(5);
+    group = groups.get(6);
     assertEquals(RestartGrouping.class, group.getClass());
     restartGroup = (RestartGrouping) group;
     assertEquals("Zookeeper", restartGroup.title);
 
-    group = groups.get(6);
+    group = groups.get(7);
     assertEquals(RestartGrouping.class, group.getClass());
     restartGroup = (RestartGrouping) group;
     assertEquals("HDFS", restartGroup.title);
 
-    group = groups.get(7);
+    group = groups.get(8);
     assertEquals(RestartGrouping.class, group.getClass());
     restartGroup = (RestartGrouping) group;
     assertEquals("MR and YARN", restartGroup.title);
 
-    group = groups.get(8);
+    group = groups.get(9);
     assertEquals(ClusterGrouping.class, group.getClass());
     clusterGroup = (ClusterGrouping) group;
     assertEquals("Finalize {{direction.text.proper}}", clusterGroup.title);
