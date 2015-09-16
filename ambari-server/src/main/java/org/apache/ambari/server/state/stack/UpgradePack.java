@@ -64,6 +64,10 @@ public class UpgradePack {
   @XmlElement(name="group")
   private List<Grouping> groups;
 
+  @XmlElementWrapper(name="prerequisite-checks")
+  @XmlElement(name="check", type=String.class)
+  private List<String> prerequisiteChecks = new ArrayList<String>();
+
   /**
    * In the case of a rolling upgrade, will specify processing logic for a particular component.
    * NonRolling upgrades are simpler so the "processing" is embedded into the  group's "type", which is a function like
@@ -106,6 +110,13 @@ public class UpgradePack {
    */
   public UpgradeType getType() {
     return type;
+  }
+
+  /**
+   * @return the preCheck name, e.g. "CheckDescription"
+   */
+  public List<String> getPrerequisiteChecks() {
+    return new ArrayList<String>(prerequisiteChecks);
   }
 
   /**

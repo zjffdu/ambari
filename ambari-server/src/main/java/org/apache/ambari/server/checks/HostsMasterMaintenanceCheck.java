@@ -40,7 +40,7 @@ import com.google.inject.Singleton;
  * Checks that all hosts in maintenance state do not have master components.
  */
 @Singleton
-@UpgradeCheck(group = UpgradeCheckGroup.MAINTENANCE_MODE, order = 1.0f)
+@UpgradeCheck(group = UpgradeCheckGroup.MAINTENANCE_MODE, order = 1.0f, required = true)
 public class HostsMasterMaintenanceCheck extends AbstractCheckDescriptor {
 
   static final String KEY_NO_UPGRADE_NAME = "no_upgrade_name";
@@ -51,15 +51,6 @@ public class HostsMasterMaintenanceCheck extends AbstractCheckDescriptor {
    */
   public HostsMasterMaintenanceCheck() {
     super(CheckDescription.HOSTS_MASTER_MAINTENANCE);
-  }
-
-  @Override
-  public boolean isApplicable(PrereqCheckRequest request) throws AmbariException {
-    if (!super.isApplicable(request)) {
-      return false;
-    }
-
-    return request.getRepositoryVersion() != null;
   }
 
   @Override

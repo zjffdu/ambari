@@ -19,8 +19,10 @@
 
 <upgrade xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
   <target>2.2.*.*</target>
+  <target-stack>HDP-2.2</target-stack>
   <type>NON_ROLLING</type>
-
+  <prechecks>
+  </prechecks>
   <order>
     <group xsi:type="cluster" name="PRE_CLUSTER" title="Prepare Upgrade">
       <skippable>true</skippable>

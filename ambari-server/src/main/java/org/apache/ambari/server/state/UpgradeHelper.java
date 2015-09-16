@@ -43,11 +43,12 @@ import org.apache.ambari.server.controller.spi.UnsupportedPropertyException;
 import org.apache.ambari.server.controller.utilities.ClusterControllerHelper;
 import org.apache.ambari.server.controller.utilities.PredicateBuilder;
 import org.apache.ambari.server.controller.utilities.PropertyHelper;
+import org.apache.ambari.server.orm.dao.RepositoryVersionDAO;
+import org.apache.ambari.server.orm.entities.RepositoryVersionEntity;
 import org.apache.ambari.server.stack.HostsType;
 import org.apache.ambari.server.stack.MasterHostResolver;
 import org.apache.ambari.server.state.stack.UpgradePack;
 import org.apache.ambari.server.state.stack.UpgradePack.ProcessingComponent;
-import org.apache.ambari.server.state.stack.upgrade.ConfigureTask;
 import org.apache.ambari.server.state.stack.upgrade.Direction;
 import org.apache.ambari.server.state.stack.upgrade.Grouping;
 import org.apache.ambari.server.state.stack.upgrade.ManualTask;
@@ -179,6 +180,68 @@ public class UpgradeHelper {
 
   @Inject
   private Provider<AmbariMetaInfo> m_ambariMetaInfo;
+
+  @Inject
+  private Provider<Clusters> clusters;
+
+  @Inject
+  private Provider<RepositoryVersionDAO> s_repoVersionDAO;
+
+
+  /**
+   * Get right Upgrade Pack, depends on stack, direction and upgrade type information
+   * @param clusterName The name of the cluster
+   * @param upgradeFromVersion Current stack version
+   * @param upgradeToVersion Target stack version
+   * @param direction {@code Direction} of the upgrade
+   * @param upgradeType The {@code UpgradeType}
+   * @return {@code UpgradeType} object
+   * @throws AmbariException
+   */
+  public UpgradePack suggestUpgradePack(String clusterName, String upgradeFromVersion, String upgradeToVersion,
+    Direction direction, UpgradeType upgradeType) throws AmbariException {
+
+    // !!! find upgrade packs based on current stack. This is where to upgrade from
+    Cluster cluster = clusters.get().getCluster(clusterName);
+    StackId stack =  cluster.getCurrentStackVersion();
+
+    String repoVersion = upgradeToVersion;
+
+    // ToDo: AMBARI-12706. Here we need to check, how this would work with SWU Downgrade
+    if (direction.isDowngrade() && null != upgradeFromVersion) {
+      repoVersion = upgradeFromVersion;
+    }
+
+    RepositoryVersionEntity versionEntity = s_repoVersionDAO.get().findByStackNameAndVersion(stack.getStackName(), repoVersion);
+
+    if (versionEntity == null) {
+      throw new AmbariException(String.format("Repository version %s was not found", repoVersion));
+    }
+
+    Map<String, UpgradePack> packs = m_ambariMetaInfo.get().getUpgradePacks(stack.getStackName(), stack.getStackVersion());
+    UpgradePack pack = null;
+
+    String repoStackId = versionEntity.getStackId().getStackId();
+    for (UpgradePack upgradePack : packs.values()) {
+      if (upgradePack.getTargetStack() != null && upgradePack.getTargetStack().equals(repoStackId) &&
+           upgradeType == upgradePack.getType()) {
+        if (pack == null) {
+          pack = upgradePack;
+        } else {
+          throw new AmbariException(
+            String.format("Found multiple upgrade packs for type %s and target version %s",
+              upgradeType.toString(), repoVersion));
+        }
+      }
+    }
+
+    if (pack == null) {
+      throw new AmbariException(String.format("No upgrade pack found for type %s and target version %s",
+        upgradeType.toString(),repoVersion));
+    }
+
+   return pack;
+  }
 
 
   /**

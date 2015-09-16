@@ -26,6 +26,7 @@ import java.util.Set;
 
 import org.apache.ambari.server.AmbariException;
 import org.apache.ambari.server.StaticallyInject;
+import org.apache.ambari.server.api.services.AmbariMetaInfo;
 import org.apache.ambari.server.checks.AbstractCheckDescriptor;
 import org.apache.ambari.server.checks.UpgradeCheckRegistry;
 import org.apache.ambari.server.controller.AmbariManagementController;
@@ -44,11 +45,14 @@ import org.apache.ambari.server.orm.entities.RepositoryVersionEntity;
 import org.apache.ambari.server.state.CheckHelper;
 import org.apache.ambari.server.state.Cluster;
 import org.apache.ambari.server.state.Clusters;
+import org.apache.ambari.server.state.UpgradeHelper;
 import org.apache.ambari.server.state.stack.PrerequisiteCheck;
 
 import com.google.common.collect.Sets;
 import com.google.inject.Inject;
 import com.google.inject.Provider;
+import org.apache.ambari.server.state.stack.UpgradePack;
+import org.apache.ambari.server.state.stack.upgrade.Direction;
 import org.apache.ambari.server.state.stack.upgrade.UpgradeType;
 
 /**
@@ -78,6 +82,9 @@ public class PreUpgradeCheckResourceProvider extends ReadOnlyResourceProvider {
 
   @Inject
   private static UpgradeCheckRegistry upgradeCheckRegistry;
+
+  @Inject
+  private static Provider<UpgradeHelper> upgradeHelper;
 
   private static Set<String> pkPropertyIds = Collections.singleton(UPGRADE_CHECK_ID_PROPERTY_ID);
 
@@ -116,7 +123,7 @@ public class PreUpgradeCheckResourceProvider extends ReadOnlyResourceProvider {
 
   @Override
   public Set<Resource> getResources(Request request, Predicate predicate) throws SystemException, UnsupportedPropertyException,
-      NoSuchResourceException, NoSuchParentResourceException {
+    NoSuchResourceException, NoSuchParentResourceException {
 
     final Set<Resource> resources = new HashSet<Resource>();
     final Set<String> requestedIds = getRequestPropertyIds(request, predicate);
@@ -136,6 +143,7 @@ public class PreUpgradeCheckResourceProvider extends ReadOnlyResourceProvider {
       }
 
       String stackName = cluster.getCurrentStackVersion().getStackName();
+      String sourceStackVersion = cluster.getCurrentStackVersion().getStackVersion();
 
       final PrereqCheckRequest upgradeCheckRequest = new PrereqCheckRequest(clusterName, upgradeType);
       upgradeCheckRequest.setSourceStackId(cluster.getCurrentStackVersion());
@@ -143,14 +151,30 @@ public class PreUpgradeCheckResourceProvider extends ReadOnlyResourceProvider {
       if (propertyMap.containsKey(UPGRADE_CHECK_REPOSITORY_VERSION_PROPERTY_ID)) {
         String repositoryVersionId = propertyMap.get(UPGRADE_CHECK_REPOSITORY_VERSION_PROPERTY_ID).toString();
         RepositoryVersionEntity repositoryVersionEntity = repositoryVersionDAO.findByStackNameAndVersion(stackName, repositoryVersionId);
-
         // set some required properties on the check request
         upgradeCheckRequest.setRepositoryVersion(repositoryVersionId);
         upgradeCheckRequest.setTargetStackId(repositoryVersionEntity.getStackId());
       }
 
+      //ambariMetaInfo.getStack(stackName, cluster.getCurrentStackVersion().getStackVersion()).getUpgradePacks()
       // TODO AMBARI-12698, filter the upgrade checks to run based on the stack and upgrade type, or the upgrade pack.
-      List<AbstractCheckDescriptor> upgradeChecksToRun = upgradeCheckRegistry.getUpgradeChecks();
+      UpgradePack upgradePack = null;
+      try{
+        // Hint: PreChecks currently executing only before UPGRADE direction
+        upgradePack = upgradeHelper.get().suggestUpgradePack(clusterName, sourceStackVersion,
+            upgradeCheckRequest.getRepositoryVersion(), Direction.UPGRADE, upgradeType);
+      } catch (AmbariException e) {
+        throw new SystemException(e.getMessage(), e);
+      }
+
+      if (upgradePack == null) {
+        throw new SystemException(String.format("Upgrade pack not found for the target repository version %s",
+          upgradeCheckRequest.getRepositoryVersion()));
+      }
+
+      // ToDo: properly handle exceptions, i.e. create fake check with error description
+
+      List<AbstractCheckDescriptor> upgradeChecksToRun = upgradeCheckRegistry.getFilteredUpgradeChecks(upgradePack);
 
       for (PrerequisiteCheck prerequisiteCheck : checkHelper.performChecks(upgradeCheckRequest, upgradeChecksToRun)) {
         final Resource resource = new ResourceImpl(Resource.Type.PreUpgradeCheck);

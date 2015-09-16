@@ -34,7 +34,7 @@ import com.google.inject.Singleton;
  * Checks that all hosts are either in maintenance mode or heartbeating with the server.
  */
 @Singleton
-@UpgradeCheck(group = UpgradeCheckGroup.LIVELINESS, order = 1.0f)
+@UpgradeCheck(group = UpgradeCheckGroup.LIVELINESS, order = 1.0f, required = true)
 public class HostsHeartbeatCheck extends AbstractCheckDescriptor {
 
   /**

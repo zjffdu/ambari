@@ -55,9 +55,6 @@ public class HostsRepositoryVersionCheckTest {
     final PrereqCheckRequest request = new PrereqCheckRequest("cluster");
     request.setRepositoryVersion("not null");
     Assert.assertTrue(new HostsMasterMaintenanceCheck().isApplicable(request));
-
-    request.setRepositoryVersion(null);
-    Assert.assertFalse(new HostsMasterMaintenanceCheck().isApplicable(request));
   }
 
   @Test

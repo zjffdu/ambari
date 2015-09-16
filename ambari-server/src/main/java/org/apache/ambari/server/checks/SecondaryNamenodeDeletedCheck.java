@@ -17,6 +17,7 @@
  */
 package org.apache.ambari.server.checks;
 
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -53,14 +54,7 @@ public class SecondaryNamenodeDeletedCheck extends AbstractCheckDescriptor {
 
   @Override
   public boolean isApplicable(PrereqCheckRequest request) throws AmbariException {
-    if (!super.isApplicable(request)) {
-      return false;
-    }
-
-    final Cluster cluster = clustersProvider.get().getCluster(request.getClusterName());
-    try {
-      cluster.getService("HDFS");
-    } catch (ServiceNotFoundException ex) {
+    if (!super.isApplicable(request, Arrays.asList("HDFS"), true)) {
       return false;
     }
 

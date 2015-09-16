@@ -470,55 +470,7 @@ public class UpgradeResourceProvider extends AbstractControllerResourceProvider 
       throw new AmbariException(String.format("%s is required", UPGRADE_VERSION));
     }
 
-    Cluster cluster = getManagementController().getClusters().getCluster(clusterName);
-
-    // !!! find upgrade packs based on current stack. This is where to upgrade
-    // from.
-    StackId stack = cluster.getCurrentStackVersion();
-
-    String repoVersion = version;
-
-    if (direction.isDowngrade() && null != versionForUpgradePack) {
-      repoVersion = versionForUpgradePack;
-    }
-
-    RepositoryVersionEntity versionEntity = s_repoVersionDAO.findByStackNameAndVersion(stack.getStackName(), repoVersion);
-
-    if (null == versionEntity) {
-      throw new AmbariException(String.format("Repository version %s was not found", repoVersion));
-    }
-
-    Map<String, UpgradePack> packs = s_metaProvider.get().getUpgradePacks(stack.getStackName(),
-            stack.getStackVersion());
-
-    UpgradePack pack = null;
-    if (preferredUpgradePackName != null && !preferredUpgradePackName.isEmpty() && packs.containsKey(preferredUpgradePackName)) {
-      pack = packs.get(preferredUpgradePackName);
-    }
-
-    if (null == pack) {
-      // !!! in case there is an upgrade pack that doesn't match the name
-      String repoStackId = versionEntity.getStackId().getStackId();
-      for (UpgradePack upgradePack : packs.values()) {
-        if (null != upgradePack.getTargetStack() && upgradePack.getTargetStack().equals(repoStackId) && upgradeType == upgradePack.getType()) {
-          if (null == pack) {
-            pack = upgradePack;
-          } else {
-            throw new AmbariException(
-                String.format("Unable to perform %s. Found multiple upgrade packs for type %s and target version %s",
-                    direction.getText(false), upgradeType.toString(), repoVersion));
-          }
-        }
-      }
-    }
-
-    if (null == pack) {
-      throw new AmbariException(
-          String.format("Unable to perform %s. Could not locate %s upgrade pack for version %s",
-              direction.getText(false), upgradeType.toString(), repoVersion));
-    }
-
-    return pack;
+    return s_upgradeHelper.suggestUpgradePack(clusterName, versionForUpgradePack, version, direction, upgradeType);
   }
 
   /**
@@ -633,8 +585,7 @@ public class UpgradeResourceProvider extends AbstractControllerResourceProvider 
     // TODO: for cross-stack upgrade, merge a new config upgrade pack from all
     // target stacks involved into upgrade and pass it into method
     ConfigUpgradePack configUpgradePack = s_metaProvider.get().getConfigUpgradePack(
-            targetStackId.getStackName(), targetStackId.getStackVersion());
-
+        targetStackId.getStackName(), targetStackId.getStackVersion());
     for (UpgradeGroupHolder group : groups) {
       UpgradeGroupEntity groupEntity = new UpgradeGroupEntity();
       groupEntity.setName(group.name);
@@ -1258,13 +1209,13 @@ public class UpgradeResourceProvider extends AbstractControllerResourceProvider 
     entity.setStageId(Long.valueOf(stageId));
 
     stage.addServerActionCommand(task.getImplementationClass(),
-            getManagementController().getAuthName(),
-            Role.AMBARI_SERVER_ACTION,
-            RoleCommand.EXECUTE,
-            cluster.getClusterName(),
-            new ServiceComponentHostServerActionEvent(null,
-                    System.currentTimeMillis()),
-            commandParams, itemDetail, null, Integer.valueOf(1200), allowRetry);
+        getManagementController().getAuthName(),
+        Role.AMBARI_SERVER_ACTION,
+        RoleCommand.EXECUTE,
+        cluster.getClusterName(),
+        new ServiceComponentHostServerActionEvent(null,
+            System.currentTimeMillis()),
+        commandParams, itemDetail, null, Integer.valueOf(1200), allowRetry);
 
     request.addStages(Collections.singletonList(stage));
   }
