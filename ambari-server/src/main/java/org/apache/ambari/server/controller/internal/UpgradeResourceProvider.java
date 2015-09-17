@@ -582,10 +582,24 @@ public class UpgradeResourceProvider extends AbstractControllerResourceProvider 
       applyStackAndProcessConfigurations(targetStackId.getStackName(), cluster, version, direction, pack);
     }
 
-    // TODO: for cross-stack upgrade, merge a new config upgrade pack from all
-    // target stacks involved into upgrade and pass it into method
-    ConfigUpgradePack configUpgradePack = s_metaProvider.get().getConfigUpgradePack(
-        targetStackId.getStackName(), targetStackId.getStackVersion());
+    // Resolve or build a proper config upgrade pack
+    List<UpgradePack.IntermediateStack> intermediateStacks = pack.getIntermediateStacks();
+    ConfigUpgradePack configUpgradePack;
+    if (intermediateStacks == null || intermediateStacks.isEmpty()) { // No intermediate stacks
+      configUpgradePack = s_metaProvider.get().getConfigUpgradePack(
+              targetStackId.getStackName(), targetStackId.getStackVersion());
+    } else {
+      // For cross-stack upgrade, follow all major stacks and merge a new config upgrade pack from all
+      // target stacks involved into upgrade
+      ArrayList<ConfigUpgradePack> intermediateConfigUpgradePacks = new ArrayList<>();
+      for (UpgradePack.IntermediateStack intermediateStack : intermediateStacks) {
+        ConfigUpgradePack intermediateConfigUpgradePack = s_metaProvider.get().getConfigUpgradePack(
+                targetStackId.getStackName(), intermediateStack.version);
+        intermediateConfigUpgradePacks.add(intermediateConfigUpgradePack);
+      }
+      configUpgradePack = ConfigUpgradePack.merge(intermediateConfigUpgradePacks);
+    }
+
     for (UpgradeGroupHolder group : groups) {
       UpgradeGroupEntity groupEntity = new UpgradeGroupEntity();
       groupEntity.setName(group.name);
@@ -724,7 +738,7 @@ public class UpgradeResourceProvider extends AbstractControllerResourceProvider 
     Map<String, Map<String, String>> newConfigurationsByType = null;
     ConfigHelper configHelper = getManagementController().getConfigHelper();
 
-    // TODO AMBARI-12698, handle jumping across several stacks and applying configs.
+    // TODO AMBARI-12698, handle jumping across several stacks
     if (direction == Direction.UPGRADE) {
       // populate a map of default configurations for the old stack (this is
       // used when determining if a property has been customized and should be

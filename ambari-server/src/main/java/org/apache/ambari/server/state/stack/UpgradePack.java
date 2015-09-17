@@ -60,6 +60,10 @@ public class UpgradePack {
   @XmlElement(name="type", defaultValue="rolling")
   private UpgradeType type;
 
+  @XmlElementWrapper(name="upgrade-path")
+  @XmlElement(name="intermediate-stack")
+  private List<IntermediateStack> intermediateStacks;
+
   @XmlElementWrapper(name="order")
   @XmlElement(name="group")
   private List<Grouping> groups;
@@ -117,6 +121,13 @@ public class UpgradePack {
    */
   public List<String> getPrerequisiteChecks() {
     return new ArrayList<String>(prerequisiteChecks);
+  }
+
+  /**
+   * @return a list for intermediate stacks for cross-stack upgrade, or null if no any
+   */
+  public List<IntermediateStack> getIntermediateStacks() {
+    return intermediateStacks;
   }
 
   /**
@@ -309,5 +320,15 @@ public class UpgradePack {
     @XmlElementWrapper(name="post-downgrade")
     @XmlElement(name="task")
     public List<Task> postDowngradeTasks;
+  }
+
+  /**
+   * An intermediate stack definition in
+   * upgrade/upgrade-path/intermediate-stack path
+   */
+  public static class IntermediateStack {
+
+    @XmlAttribute
+    public String version;
   }
 }

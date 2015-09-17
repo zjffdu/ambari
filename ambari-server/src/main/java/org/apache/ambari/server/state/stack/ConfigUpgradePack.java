@@ -27,6 +27,9 @@ import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlElementWrapper;
 import javax.xml.bind.annotation.XmlRootElement;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -34,18 +37,22 @@ import java.util.Map;
 /**
  * Represents a pack of changes that should be applied to configs
  * when upgrading from a previous stack. In other words, it's a config delta
- * from prev stack
+ * from prev stack.
+ *
+ * After first call of enumerateConfigChangesByID() method, instance contains
+ * a cache of data, so it should not be modified in runtime (otherwise
+ * the cache will become outdated).
  */
 @XmlRootElement(name="upgrade-config-changes")
 @XmlAccessorType(XmlAccessType.FIELD)
 public class ConfigUpgradePack {
 
   /**
-   * Defines per-service config changes
+   * Defines per-service config changes.
    */
   @XmlElementWrapper(name="services")
   @XmlElement(name="service")
-  private List<AffectedService> services;
+  public List<AffectedService> services;
 
   /**
    * Contains a cached mapping of <change id, change definition>.
@@ -62,14 +69,6 @@ public class ConfigUpgradePack {
 
   public ConfigUpgradePack(List<AffectedService> services) {
     this.services = services;
-  }
-
-  /**
-   * @return a list of per-service config changes. List should not be modified
-   * in runtime, since it will make cache stale.
-   */
-  public List<AffectedService> getServices() {
-    return services;
   }
 
   /**
@@ -106,6 +105,52 @@ public class ConfigUpgradePack {
       }
     }
     return changesById;
+  }
+
+  /**
+   * Merges few config upgrade packs into one and returs result. During merge,
+   * a deep copy of AffectedService and AffectedComponent lists is added to resulting
+   * config upgrade pack. The only level that is not copied deeply is a list of
+   * per-component config changes.
+   * @param cups list of source config upgrade packs
+   * @return merged config upgrade pack that is a deep copy of source
+   * config upgrade packs
+   */
+  public static ConfigUpgradePack merge(ArrayList<ConfigUpgradePack> cups) {
+    // Map <service_name, <component_name, component_changes>>
+    Map<String, Map<String, AffectedComponent>> mergedServiceMap = new HashMap<>();
+
+    for (ConfigUpgradePack configUpgradePack : cups) {
+      for (AffectedService service : configUpgradePack.services) {
+        if (! mergedServiceMap.containsKey(service.name)) {
+          mergedServiceMap.put(service.name, new HashMap<String, AffectedComponent>());
+        }
+        Map<String, AffectedComponent> mergedComponentMap = mergedServiceMap.get(service.name);
+
+        for (AffectedComponent component : service.components) {
+          if (! mergedComponentMap.containsKey(component.name)) {
+            AffectedComponent mergedComponent = new AffectedComponent();
+            mergedComponent.name = component.name;
+            mergedComponent.changes = new ArrayList<>();
+            mergedComponentMap.put(component.name, mergedComponent);
+          }
+          AffectedComponent mergedComponent = mergedComponentMap.get(component.name);
+          mergedComponent.changes.addAll(component.changes);
+        }
+
+      }
+    }
+    // Convert merged maps into new ConfigUpgradePack
+    ArrayList<AffectedService> mergedServices = new ArrayList<>();
+    for (String serviceName : mergedServiceMap.keySet()) {
+      AffectedService mergedService = new AffectedService();
+      Map<String, AffectedComponent> mergedComponentMap = mergedServiceMap.get(serviceName);
+      mergedService.name = serviceName;
+      mergedService.components = new ArrayList<>(mergedComponentMap.values());
+      mergedServices.add(mergedService);
+    }
+
+    return new ConfigUpgradePack(mergedServices);
   }
 
   /**
