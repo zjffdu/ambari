@@ -51,6 +51,7 @@ import org.apache.ambari.server.topology.HostGroup;
 import org.apache.ambari.server.topology.HostGroupImpl;
 import org.apache.ambari.server.topology.HostGroupInfo;
 import org.apache.ambari.server.topology.InvalidTopologyException;
+import org.apache.commons.collections.CollectionUtils;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -151,6 +152,9 @@ public class BlueprintConfigurationProcessorTest {
     }
 
     expect(stack.getCardinality("MYSQL_SERVER")).andReturn(new Cardinality("0-1")).anyTimes();
+
+    Set<String> emptySet = Collections.emptySet();
+    expect(stack.getExcludedConfigurationTypes(anyObject(String.class))).andReturn(emptySet).anyTimes();
   }
 
   @After
@@ -3680,6 +3684,83 @@ public class BlueprintConfigurationProcessorTest {
   }
 
   @Test
+  public void testAddExcludedProperties() throws Exception {
+    reset(stack);
+
+    // defaults from init() method that we need
+    expect(stack.getName()).andReturn("testStack").anyTimes();
+    expect(stack.getVersion()).andReturn("1").anyTimes();
+    expect(stack.isMasterComponent((String) anyObject())).andReturn(false).anyTimes();
+
+    // customized stack calls for this test only
+    expect(stack.getExcludedConfigurationTypes("FALCON")).andReturn(Collections.singleton("oozie-site")).anyTimes();
+    expect(stack.getConfigurationProperties("FALCON", "oozie-site")).andReturn(Collections.singletonMap("oozie.service.ELService.ext.functions.coord-job-submit-instances", "testValue")).anyTimes();
+
+    Map<String, Map<String, String>> properties = new HashMap<String, Map<String, String>>();
+    Configuration clusterConfig = new Configuration(properties, Collections.<String, Map<String, Map<String, String>>>emptyMap());
+
+    Collection<String> hgComponents = new HashSet<String>();
+    hgComponents.add("FALCON_SERVER");
+    hgComponents.add("FALCON_CLIENT");
+    List<String> hosts = new ArrayList<String>();
+    hosts.add("c6401.apache.ambari.org");
+    hosts.add("serverTwo");
+    TestHostGroup group1 = new TestHostGroup("host_group_1", hgComponents, hosts);
+
+    Collection<TestHostGroup> hostGroups = new HashSet<TestHostGroup>();
+    hostGroups.add(group1);
+
+    ClusterTopology topology = createClusterTopology(bp, clusterConfig, hostGroups);
+    BlueprintConfigurationProcessor updater = new BlueprintConfigurationProcessor(topology);
+
+    updater.doUpdateForClusterCreate();
+
+    assertEquals("Falcon Broker URL property not properly exported",
+      "testValue", clusterConfig.getPropertyValue("oozie-site", "oozie.service.ELService.ext.functions.coord-job-submit-instances"));
+  }
+
+  @Test
+  public void testAddExcludedPropertiesAreOverwrittenByBlueprintConfigs() throws Exception {
+    reset(stack);
+
+    // defaults from init() method that we need
+    expect(stack.getName()).andReturn("testStack").anyTimes();
+    expect(stack.getVersion()).andReturn("1").anyTimes();
+    expect(stack.isMasterComponent((String) anyObject())).andReturn(false).anyTimes();
+    expect(stack.getConfigurationPropertiesWithMetadata(anyObject(String.class), anyObject(String.class))).andReturn(Collections.<String, Stack.ConfigProperty>emptyMap()).anyTimes();
+
+    // customized stack calls for this test only
+    expect(stack.getExcludedConfigurationTypes("FALCON")).andReturn(Collections.singleton("oozie-site")).anyTimes();
+    expect(stack.getConfigurationProperties("FALCON", "oozie-site")).andReturn(Collections.singletonMap("oozie.service.ELService.ext.functions.coord-job-submit-instances", "testValue")).anyTimes();
+
+    Map<String, Map<String, String>> properties = new HashMap<String, Map<String, String>>();
+    Map<String, String> typeProps = new HashMap<String, String>();
+    typeProps.put("oozie.service.ELService.ext.functions.coord-job-submit-instances", "overridedValue");
+    properties.put("oozie-site", typeProps);
+
+    Configuration clusterConfig = new Configuration(properties, Collections.<String, Map<String, Map<String, String>>>emptyMap());
+
+    Collection<String> hgComponents = new HashSet<String>();
+    hgComponents.add("FALCON_SERVER");
+    hgComponents.add("FALCON_CLIENT");
+    List<String> hosts = new ArrayList<String>();
+    hosts.add("c6401.apache.ambari.org");
+    hosts.add("serverTwo");
+    TestHostGroup group1 = new TestHostGroup("host_group_1", hgComponents, hosts);
+
+    Collection<TestHostGroup> hostGroups = new HashSet<TestHostGroup>();
+    hostGroups.add(group1);
+
+    ClusterTopology topology = createClusterTopology(bp, clusterConfig, hostGroups);
+    BlueprintConfigurationProcessor updater = new BlueprintConfigurationProcessor(topology);
+
+    updater.doUpdateForClusterCreate();
+
+    assertEquals("Falcon Broker URL property not properly exported",
+      "overridedValue", clusterConfig.getPropertyValue("oozie-site", "oozie.service.ELService.ext.functions.coord-job-submit-instances"));
+  }
+
+  @Test
   public void testFalconConfigClusterUpdate() throws Exception {
     final String expectedHostName = "c6401.apache.ambari.org";
     final String expectedPortNum = "808080";
@@ -3853,6 +3934,8 @@ public class BlueprintConfigurationProcessorTest {
     expect(stack.getName()).andReturn("testStack").anyTimes();
     expect(stack.getVersion()).andReturn("1").anyTimes();
     expect(stack.isMasterComponent((String) anyObject())).andReturn(false).anyTimes();
+    Set<String> emptySet = Collections.emptySet();
+    expect(stack.getExcludedConfigurationTypes(anyObject(String.class))).andReturn(emptySet).anyTimes();
 
     // customized stack calls for this test only
     expect(stack.getServiceForConfigType("hive-site")).andReturn("HIVE").atLeastOnce();
@@ -3928,6 +4011,8 @@ public class BlueprintConfigurationProcessorTest {
     expect(stack.getName()).andReturn("testStack").anyTimes();
     expect(stack.getVersion()).andReturn("1").anyTimes();
     expect(stack.isMasterComponent((String) anyObject())).andReturn(false).anyTimes();
+    Set<String> emptySet = Collections.emptySet();
+    expect(stack.getExcludedConfigurationTypes(anyObject(String.class))).andReturn(emptySet).anyTimes();
 
     // customized stack calls for this test only
     // simulate the case of the stack object throwing a RuntimeException, to indicate a config error
@@ -4005,6 +4090,8 @@ public class BlueprintConfigurationProcessorTest {
     expect(stack.getName()).andReturn("testStack").anyTimes();
     expect(stack.getVersion()).andReturn("1").anyTimes();
     expect(stack.isMasterComponent((String) anyObject())).andReturn(false).anyTimes();
+    Set<String> emptySet = Collections.emptySet();
+    expect(stack.getExcludedConfigurationTypes(anyObject(String.class))).andReturn(emptySet).anyTimes();
 
     // customized stack calls for this test only
     expect(stack.getServiceForConfigType("hive-site")).andReturn("HIVE").atLeastOnce();
@@ -4091,7 +4178,10 @@ public class BlueprintConfigurationProcessorTest {
     expect(stack.getVersion()).andReturn("1").anyTimes();
     expect(stack.isMasterComponent((String) anyObject())).andReturn(false).anyTimes();
 
-    // customized stack calls for this test only
+    Set<String> emptySet = Collections.emptySet();
+    expect(stack.getExcludedConfigurationTypes(anyObject(String.class))).andReturn(emptySet).anyTimes();
+
+      // customized stack calls for this test only
     expect(stack.getServiceForConfigType("hbase-site")).andReturn("HBASE").atLeastOnce();
     expect(stack.getConfigurationPropertiesWithMetadata("HBASE", "hbase-site")).andReturn(mapOfMetadata).atLeastOnce();
 
@@ -4156,6 +4246,8 @@ public class BlueprintConfigurationProcessorTest {
     expect(stack.getName()).andReturn("testStack").anyTimes();
     expect(stack.getVersion()).andReturn("1").anyTimes();
     expect(stack.isMasterComponent((String) anyObject())).andReturn(false).anyTimes();
+    Set<String> emptySet = Collections.emptySet();
+    expect(stack.getExcludedConfigurationTypes(anyObject(String.class))).andReturn(emptySet).anyTimes();
 
     // customized stack calls for this test only
     expect(stack.getServiceForConfigType("hbase-site")).andReturn("HBASE").atLeastOnce();
