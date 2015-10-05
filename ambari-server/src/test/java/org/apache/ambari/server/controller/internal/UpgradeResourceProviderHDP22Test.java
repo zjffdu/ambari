@@ -269,6 +269,7 @@ public class UpgradeResourceProviderHDP22Test {
     assertEquals(1, upgrades.size());
 
     UpgradeEntity upgrade = upgrades.get(0);
+    assertEquals("upgrade_test", upgrade.getUpgradePackage());
     assertEquals(3, upgrade.getUpgradeGroups().size());
 
     UpgradeGroupEntity group = upgrade.getUpgradeGroups().get(2);

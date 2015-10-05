@@ -199,8 +199,11 @@ public class Grouping {
   }
 
   private static class TaskBucket {
+
     private StageWrapper.Type type;
+
     private List<Task> tasks = new ArrayList<Task>();
+
     private TaskBucket(Task initial) {
       switch (initial.getType()) {
         case CONFIGURE:

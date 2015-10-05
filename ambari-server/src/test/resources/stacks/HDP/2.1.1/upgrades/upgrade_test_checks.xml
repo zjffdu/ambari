@@ -135,7 +135,7 @@
           <task xsi:type="restart-task" />
         </upgrade>
         <post-upgrade>
-          <task xsi:type="configure" />
+          <task xsi:type="configure" id="hdp_2_1_1_zk_post_upgrade"/>
         </post-upgrade>
       </component>
     </service>
@@ -145,10 +145,7 @@
           <task xsi:type="execute" hosts="master">
             <command>su - {hdfs-user} -c 'dosomething'</command>
           </task>
-          <task xsi:type="configure">
-            <type>hdfs-site</type>
-            <set key="myproperty" value="mynewvalue"/>
-          </task>
+          <task xsi:type="configure" id="hdp_2_1_1_nn_pre_upgrade"/>
           <task xsi:type="manual">
             <message>Update your database</message>
           </task>

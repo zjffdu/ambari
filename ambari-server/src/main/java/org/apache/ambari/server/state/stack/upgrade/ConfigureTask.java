@@ -125,6 +125,15 @@ public class ConfigureTask extends ServerSideActionTask {
   }
 
   /**
+   * This getter is intended to be used only from tests. In production,
+   * getConfigurationChanges() logic should be used instead
+   * @return id of config upgrade change definition as defined in upgrade pack
+   */
+  public String getId() {
+    return id;
+  }
+
+  /**
    * Gets a map containing the following properties pertaining to the
    * configuration value to change:
    * <ul>

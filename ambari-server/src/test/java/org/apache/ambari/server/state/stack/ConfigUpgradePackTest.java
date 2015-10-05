@@ -23,14 +23,8 @@ import com.google.inject.persist.PersistService;
 import org.apache.ambari.server.api.services.AmbariMetaInfo;
 import org.apache.ambari.server.orm.GuiceJpaInitializer;
 import org.apache.ambari.server.orm.InMemoryDefaultTestModule;
-import org.apache.ambari.server.state.stack.upgrade.ClusterGrouping;
+import org.apache.ambari.server.state.stack.upgrade.*;
 import org.apache.ambari.server.state.stack.upgrade.ClusterGrouping.ExecuteStage;
-import org.apache.ambari.server.state.stack.upgrade.ConfigUpgradeChangeDefinition;
-import org.apache.ambari.server.state.stack.upgrade.Direction;
-import org.apache.ambari.server.state.stack.upgrade.Grouping;
-import org.apache.ambari.server.state.stack.upgrade.RestartGrouping;
-import org.apache.ambari.server.state.stack.upgrade.StopGrouping;
-import org.apache.ambari.server.state.stack.upgrade.UpgradeType;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -42,21 +36,33 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-
 import static org.apache.ambari.server.state.stack.ConfigUpgradePack.AffectedService;
 import static org.apache.ambari.server.state.stack.ConfigUpgradePack.AffectedComponent;
+import static org.junit.Assert.*;
 
 /**
  * Tests for the config upgrade pack
  */
 public class ConfigUpgradePackTest {
 
+  private Injector injector;
+  private AmbariMetaInfo ambariMetaInfo;
+
+  @Before
+  public void before() throws Exception {
+    injector = Guice.createInjector(new InMemoryDefaultTestModule());
+    injector.getInstance(GuiceJpaInitializer.class);
+
+    ambariMetaInfo = injector.getInstance(AmbariMetaInfo.class);
+  }
+
+  @After
+  public void teardown() {
+    injector.getInstance(PersistService.class).stop();
+  }
+
   @Test
   public void testMerge() {
-
     // Generate test data - 3 config upgrade packs, 2 services, 2 components, 2 config changes each
     ArrayList<ConfigUpgradePack> cups = new ArrayList<>();
     for (int cupIndex = 0; cupIndex < 3; cupIndex++) {
@@ -142,6 +148,50 @@ public class ConfigUpgradePackTest {
     assertEquals(result.getServiceMap().get("SOME_SERVICE_2").getComponentMap().get("NAMENODE").changes.get(1).id, "CHANGE_2_1_0_1");
     assertEquals(result.getServiceMap().get("SOME_SERVICE_2").getComponentMap().get("SOME_COMPONENT_2").changes.get(0).id, "CHANGE_2_1_1_0");
     assertEquals(result.getServiceMap().get("SOME_SERVICE_2").getComponentMap().get("SOME_COMPONENT_2").changes.get(1).id, "CHANGE_2_1_1_1");
+
+  }
+
+  @Test
+  public void testConfigUpgradeDefinitionParsing() throws Exception {
+    ConfigUpgradePack cup = ambariMetaInfo.getConfigUpgradePack("HDP", "2.1.1");
+    Map<String, ConfigUpgradeChangeDefinition> changesByID = cup.enumerateConfigChangesByID();
+
+    ConfigUpgradeChangeDefinition hdp_2_1_1_nm_pre_upgrade = changesByID.get("hdp_2_1_1_nm_pre_upgrade");
+    assertEquals("core-site", hdp_2_1_1_nm_pre_upgrade.getConfigType());
+    assertEquals(4, hdp_2_1_1_nm_pre_upgrade.getTransfers().size());
+
+    /*
+            <transfer operation="COPY" from-key="copy-key" to-key="copy-key-to" />
+            <transfer operation="COPY" from-type="my-site" from-key="my-copy-key" to-key="my-copy-key-to" />
+            <transfer operation="MOVE" from-key="move-key" to-key="move-key-to" />
+            <transfer operation="DELETE" delete-key="delete-key">
+              <keep-key>important-key</keep-key>
+            </transfer>
+    */
+    ConfigUpgradeChangeDefinition.Transfer t1 = hdp_2_1_1_nm_pre_upgrade.getTransfers().get(0);
+    assertEquals(TransferOperation.COPY, t1.operation);
+    assertEquals("copy-key", t1.fromKey);
+    assertEquals("copy-key-to", t1.toKey);
+
+    ConfigUpgradeChangeDefinition.Transfer t2 = hdp_2_1_1_nm_pre_upgrade.getTransfers().get(1);
+    assertEquals(TransferOperation.COPY, t2.operation);
+    assertEquals("my-site", t2.fromType);
+    assertEquals("my-copy-key", t2.fromKey);
+    assertEquals("my-copy-key-to", t2.toKey);
+    assertTrue(t2.keepKeys.isEmpty());
+
+    ConfigUpgradeChangeDefinition.Transfer t3 = hdp_2_1_1_nm_pre_upgrade.getTransfers().get(2);
+    assertEquals(TransferOperation.MOVE, t3.operation);
+    assertEquals("move-key", t3.fromKey);
+    assertEquals("move-key-to", t3.toKey);
+
+    ConfigUpgradeChangeDefinition.Transfer t4 = hdp_2_1_1_nm_pre_upgrade.getTransfers().get(3);
+    assertEquals(TransferOperation.DELETE, t4.operation);
+    assertEquals("delete-key", t4.deleteKey);
+    assertNull(t4.toKey);
+    assertTrue(t4.preserveEdits);
+    assertEquals(1, t4.keepKeys.size());
+    assertEquals("important-key", t4.keepKeys.get(0));
 
   }
 
