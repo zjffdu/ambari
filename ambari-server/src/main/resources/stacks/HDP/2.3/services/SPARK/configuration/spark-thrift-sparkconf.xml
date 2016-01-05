@@ -57,14 +57,7 @@
     </description>
   </property>
 
-  <property>
-    <name>spark.yarn.queue</name>
-    <value>default</value>
-    <description>
-      The name of the YARN queue to which the application is submitted.
-    </description>
-  </property>
-
+  
   <property>
     <name>spark.yarn.containerLauncherMaxThreads</name>
     <value>25</value>
